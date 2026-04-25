@@ -1,0 +1,196 @@
+{
+  "ingestion": {
+    "matches_covered": [
+      {
+        "match_id": 3001,
+        "date": "2026-03-22",
+        "opponent": "FCSB",
+        "event_count": 401,
+        "is_complete": true
+      },
+      {
+        "match_id": 3002,
+        "date": "2026-04-12",
+        "opponent": "FCSB",
+        "event_count": 388,
+        "is_complete": true
+      }
+    ],
+    "players_present": [
+      {
+        "id": 9001,
+        "name": "Marian Crisan",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 9002,
+        "name": "Ovidiu Hoban",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 9003,
+        "name": "Adi Cristea",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 9004,
+        "name": "Dani Coman",
+        "team_side": "away",
+        "appearance_count": 2
+      }
+    ],
+    "event_type_breakdown": {
+      "pass": 605,
+      "shot": 31,
+      "carry": 128,
+      "dribble": 18,
+      "goal": 2
+    },
+    "total_events": 789,
+    "completeness": {
+      "has_all_lineups": true,
+      "has_coordinates_for_all_passes": true,
+      "minimum_events_per_match": true,
+      "missing_match_ids": []
+    },
+    "warnings": []
+  },
+  "threats": {
+    "opponent_id": 999,
+    "ranked_players": [
+      {
+        "player_id": 9001,
+        "player_name": "Marian Crisan",
+        "rank": 1,
+        "cumulative_xt": 0.84,
+        "reasoning": "Highest cumulative_xt of 0.84 across the window with 47 successful progressive passes from the right halfspace.",
+        "is_danger_creator": true
+      },
+      {
+        "player_id": 9002,
+        "player_name": "Ovidiu Hoban",
+        "rank": 2,
+        "cumulative_xt": 0.71,
+        "reasoning": "Cumulative_xt of 0.71; deep originator feeding the danger creator from zone 88.",
+        "is_danger_creator": false
+      },
+      {
+        "player_id": 9003,
+        "player_name": "Adi Cristea",
+        "rank": 3,
+        "cumulative_xt": 0.32,
+        "reasoning": "Cumulative_xt of 0.32; primary box finisher on 4 occasions.",
+        "is_danger_creator": false
+      },
+      {
+        "player_id": 9004,
+        "player_name": "Dani Coman",
+        "rank": 4,
+        "cumulative_xt": 0.10,
+        "reasoning": "Cumulative_xt of 0.10; secondary wide outlet with 12 progressive carries.",
+        "is_danger_creator": false
+      }
+    ],
+    "danger_creator_id": 9001,
+    "secondary_targets": [9002],
+    "notes": ["Danger creator concentration: top player accounts for over 40% of cumulative xT."]
+  },
+  "zones": {
+    "opponent_id": 999,
+    "priority_zones": [
+      {
+        "zone_id": 152,
+        "grid_x": 8,
+        "grid_y": 9,
+        "corridor": "central",
+        "priority": "critical",
+        "reasoning": "xt_sum of 0.46 and shot_count of 5 — the most dangerous central pre-box zone."
+      },
+      {
+        "zone_id": 170,
+        "grid_x": 10,
+        "grid_y": 10,
+        "corridor": "central",
+        "priority": "high",
+        "reasoning": "xt_sum of 0.21 with pass_destination_count of 24; final-third entry zone."
+      },
+      {
+        "zone_id": 168,
+        "grid_x": 8,
+        "grid_y": 10,
+        "corridor": "central",
+        "priority": "high",
+        "reasoning": "xt_sum of 0.18 and pass_destination_count of 22; centrally located cutback zone."
+      },
+      {
+        "zone_id": 120,
+        "grid_x": 8,
+        "grid_y": 7,
+        "corridor": "right_halfspace",
+        "priority": "medium",
+        "reasoning": "xt_sum of 0.09 with pass_origin_count of 18; main launch point for progressions."
+      },
+      {
+        "zone_id": 88,
+        "grid_x": 8,
+        "grid_y": 5,
+        "corridor": "right_halfspace",
+        "priority": "medium",
+        "reasoning": "xt_sum of 0.06 with pass_origin_count of 12; deep build-up origin from the right halfspace."
+      }
+    ],
+    "critical_corridors": ["central", "right_halfspace"],
+    "summary": "Central corridor and right halfspace dominate the danger picture, anchored by zone 152."
+  },
+  "pattern": {
+    "opponent_id": 999,
+    "pattern_signature": "central_progression_through_halfspace",
+    "confidence": 0.72,
+    "description": "Marian Crisan repeatedly progresses from zone 120 in the right halfspace into central zone 152 before the final ball. Build-ups originate deep with Ovidiu Hoban feeding from zone 88.",
+    "key_players": [
+      {
+        "player_id": 9001,
+        "player_name": "Marian Crisan",
+        "role": "progressor"
+      },
+      {
+        "player_id": 9002,
+        "player_name": "Ovidiu Hoban",
+        "role": "originator"
+      }
+    ],
+    "starting_zones": [120, 88],
+    "finishing_zones": [170, 168],
+    "is_based_on_synthesised_input": false,
+    "notes": ["Pattern present in 2 of 2 observed goals."]
+  },
+  "pitch_control": {
+    "alerts": [
+      {
+        "zone_id": 152,
+        "grid_x": 8,
+        "grid_y": 9,
+        "corridor": "central",
+        "opponent_control_pct": 0.68,
+        "our_control_pct": 0.22,
+        "xt_exposure": 0.15,
+        "severity": "critical"
+      },
+      {
+        "zone_id": 170,
+        "grid_x": 10,
+        "grid_y": 10,
+        "corridor": "central",
+        "opponent_control_pct": 0.55,
+        "our_control_pct": 0.31,
+        "xt_exposure": 0.09,
+        "severity": "high"
+      }
+    ],
+    "avg_defensive_line_height": 42.0,
+    "notes": ["Defensive midfielder pivot drops back insufficiently against central progressions."]
+  }
+}
