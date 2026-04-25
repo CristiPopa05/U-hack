@@ -143,7 +143,7 @@ Suggested first features to scope:
 3. Pass-network playback component (driven by mocked JSON, no backend yet).
 
 ### Member 2 — Database & Backend Integration (Supabase + Vector DB)
-**Owns:** persistence, retrieval, and the data model that everything else queries against.
+**Owns:** persistence, retrieval, and the data model that everything else quernpies against.
 
 Responsibilities:
 - Schema design in Supabase (Postgres):
