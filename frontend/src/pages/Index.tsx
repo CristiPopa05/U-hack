@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, KeyboardEvent, useMemo, useRef, useEffect } from "react";
 import { TEAMS, STANDINGS } from "@/lib/mock-data";
 import { toast } from "@/hooks/use-toast";
+import { useHistoryState } from "@/hooks/use-history-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,15 +11,27 @@ import { ArrowRight, Loader2, Sparkles, Activity, Search, Clock, Upload } from "
 import { TeamCrest } from "@/components/TeamCrest";
 import uClujCrest from "@/assets/u-cluj-crest.png";
 
-type HistoryEntry = { id: string; name: string; when: string; ts: number };
+const formatRelativeTime = (timestamp: number) => {
+  const diffMs = Date.now() - timestamp;
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
 
-const INITIAL_HISTORY: HistoryEntry[] = [
-  { id: "craiova", name: "U Craiova", when: "Analyzed 2 hours ago", ts: Date.now() - 1000 * 60 * 60 * 2 },
-  { id: "cfr", name: "CFR Cluj", when: "Analyzed yesterday", ts: Date.now() - 1000 * 60 * 60 * 24 },
-  { id: "rapid", name: "Rapid București", when: "Analyzed 2 days ago", ts: Date.now() - 1000 * 60 * 60 * 48 },
-  { id: "dinamo", name: "Dinamo București", when: "Searched 3 days ago", ts: Date.now() - 1000 * 60 * 60 * 72 },
-  { id: "arges", name: "FC Argeș", when: "Analyzed last week", ts: Date.now() - 1000 * 60 * 60 * 24 * 7 },
-];
+  if (diffMs < minuteMs) return "Analyzed just now";
+
+  if (diffMs < hourMs) {
+    const minutes = Math.floor(diffMs / minuteMs);
+    return `Analyzed ${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  if (diffMs < dayMs) {
+    const hours = Math.floor(diffMs / hourMs);
+    return `Analyzed ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.floor(diffMs / dayMs);
+  return `Analyzed ${days} day${days === 1 ? "" : "s"} ago`;
+};
 
 const Index = () => {
   const navigate = useNavigate();
@@ -27,7 +40,7 @@ const Index = () => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [history, setHistory] = useState<HistoryEntry[]>(INITIAL_HISTORY);
+  const { history, addHistoryEntry } = useHistoryState();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -36,9 +49,9 @@ const Index = () => {
     if (!q) return [];
     return TEAMS.filter(
       (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.short.toLowerCase().includes(q) ||
-        t.city.toLowerCase().includes(q),
+        t.name.toLowerCase().startsWith(q) ||
+        t.short.toLowerCase().startsWith(q) ||
+        t.city.toLowerCase().startsWith(q),
     ).slice(0, 6);
   }, [query]);
 
@@ -50,16 +63,9 @@ const Index = () => {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  const pushHistory = (id: string, name: string) => {
-    setHistory((prev) => [
-      { id, name, when: "Analyzed just now", ts: Date.now() },
-      ...prev.filter((h) => h.id !== id),
-    ]);
-  };
-
   const handleSelect = (id: string) => {
     const team = TEAMS.find((t) => t.id === id);
-    if (team) pushHistory(team.id, team.name);
+    if (team) addHistoryEntry(team.id, team.name);
     setLoadingTeam(id);
     setTimeout(() => navigate(`/analysis/${id}`), 2000);
   };
@@ -89,7 +95,7 @@ const Index = () => {
     if (!q) return;
     const match =
       TEAMS.find((t) => t.name.toLowerCase() === q || t.short.toLowerCase() === q || t.id === q) ||
-      TEAMS.find((t) => t.name.toLowerCase().includes(q) || t.short.toLowerCase().includes(q));
+      TEAMS.find((t) => t.name.toLowerCase().startsWith(q) || t.short.toLowerCase().startsWith(q));
     if (match) handleSelect(match.id);
   };
 
@@ -258,24 +264,30 @@ const Index = () => {
           <p className="text-sm text-muted-foreground hidden md:block">Resume any previous tactical dossier.</p>
         </div>
         <div className="panel divide-y divide-border/40 overflow-hidden">
-          {history.map((h) => (
-            <button
-              key={`${h.id}-${h.ts}`}
-              onClick={() => handleSelect(h.id)}
-              className="group w-full flex items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/40"
-            >
-              <div className="w-9 h-9 rounded-md bg-secondary/60 border border-border/60 flex items-center justify-center overflow-hidden">
-                <TeamCrest short={h.id.toUpperCase()} teamId={h.id} teamName={h.name} size={28} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm leading-tight truncate">{h.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{h.when}</p>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] text-muted-foreground/80 group-hover:text-foreground transition">
-                Open dossier <ArrowRight className="w-3.5 h-3.5" />
-              </div>
-            </button>
-          ))}
+          {history.length === 0 ? (
+            <div className="px-5 py-6 text-sm text-muted-foreground">
+              No recent analyses yet. Search a team to start your first dossier.
+            </div>
+          ) : (
+            history.map((h) => (
+              <button
+                key={`${h.teamId}-${h.timestamp}`}
+                onClick={() => handleSelect(h.teamId)}
+                className="group w-full flex items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/40"
+              >
+                <div className="w-9 h-9 rounded-md bg-secondary/60 border border-border/60 flex items-center justify-center overflow-hidden">
+                  <TeamCrest short={h.teamId.toUpperCase()} teamId={h.teamId} teamName={h.team} size={28} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm leading-tight truncate">{h.team}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{formatRelativeTime(h.timestamp)}</p>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground/80 group-hover:text-foreground transition">
+                  Open dossier <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </button>
+            ))
+          )}
         </div>
       </section>
 
