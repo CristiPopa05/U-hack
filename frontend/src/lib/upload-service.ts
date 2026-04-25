@@ -13,7 +13,7 @@ function getMatchPlayerId(matchId: number | string, playerId: number | string): 
 async function makeRequest(endpoint: string, data: any) {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
+
   const res = await fetch(`${url}/rest/v1/${endpoint}`, {
     method: 'POST',
     headers: {
@@ -24,7 +24,7 @@ async function makeRequest(endpoint: string, data: any) {
     },
     body: JSON.stringify(data)
   });
-  
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`[${res.status}] ${text}`);
@@ -53,6 +53,20 @@ export async function uploadMatchData(rawData: any): Promise<void> {
   } else {
     await processMatch(rawData);
   }
+
+  console.log('Toate fișierele au fost procesate. Aștept confirmarea xT...');
+
+  const GC_FUNCTION_URL = 'https://calculate-xt-483351897557.europe-west1.run.app';
+  try {
+    const xtRes = await fetch(GC_FUNCTION_URL);
+    if (xtRes.ok) {
+      console.log('Succes! xT-ul a fost calculat.');
+    } else {
+      console.error(`Eroare: ${xtRes.status}`);
+    }
+  } catch (e: any) {
+    console.error(`Eroare la conexiune: ${e.message}`);
+  }
 }
 
 async function processMatch(rawData: any): Promise<void> {
@@ -61,11 +75,11 @@ async function processMatch(rawData: any): Promise<void> {
   if (rawData.data && !rawData.matchInfo && !rawData.id) {
     data = rawData.data;
   }
-  
+
   // If data itself is the match info (it has an id and homeTeam/awayTeam)
   const matchInfo = data.matchInfo || (data.id && (data.homeTeam || data.awayTeam) ? data : {});
   const matchId = matchInfo.id;
-  
+
   if (!matchId) {
     throw new Error('Nu am găsit un matchId valid în acest fișier JSON. Verifică formatul fișierului. Datele trebuie să conțină măcar un id și homeTeam/awayTeam.');
   }
@@ -118,7 +132,7 @@ async function processMatch(rawData: any): Promise<void> {
     const teamId = matchInfo[`${side}Team`]?.id;
     const teamUuid = teamId ? getTeamUuid(teamId) : null;
     const playersList = lineups[side]?.players || [];
-    
+
     for (const p of playersList) {
       const pi = p.player || {};
       const pId = pi.id;
@@ -155,7 +169,7 @@ async function processMatch(rawData: any): Promise<void> {
     if (!/^\d+$/.test(pIdStr)) continue;
     const pId = parseInt(pIdStr, 10);
     const rbDetails = ratingBreakdowns[pIdStr]?.ratingBreakdown || {};
-    
+
     if (typeof rbDetails === 'object' && rbDetails !== null) {
       const passesList = rbDetails.passes || [];
       if (Array.isArray(passesList)) {
@@ -182,7 +196,7 @@ async function processMatch(rawData: any): Promise<void> {
     for (const ev of events) {
       const pId = ev.player?.id;
       if (!pId) continue;
-      
+
       const endX = ev.passEndCoordinates?.x ?? ev.goalShotCoordinates?.x;
       const endY = ev.passEndCoordinates?.y ?? ev.goalShotCoordinates?.y;
 
@@ -209,7 +223,6 @@ async function processMatch(rawData: any): Promise<void> {
         await makeRequest('passes', chunk);
       } catch (error: any) {
         console.error(`Passes Chunk Error at ${i}:`, error);
-        // Matching Python script's error handling for chunks (logging only)
       }
     }
     console.log(`Passes inserted. (${passesPayload.length})`);
@@ -221,7 +234,6 @@ async function processMatch(rawData: any): Promise<void> {
       console.log(`Events inserted. (${eventsPayload.length})`);
     } catch (error: any) {
       console.error('Events Error:', error);
-      // Not throwing, matching Python behavior
     }
   }
 }
