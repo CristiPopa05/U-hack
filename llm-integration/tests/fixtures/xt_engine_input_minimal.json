@@ -1,0 +1,215 @@
+{
+  "ingestion": {
+    "matches_covered": [
+      {
+        "match_id": 1001,
+        "date": "2026-03-15",
+        "opponent": "FCSB",
+        "event_count": 412,
+        "is_complete": true
+      },
+      {
+        "match_id": 1002,
+        "date": "2026-04-05",
+        "opponent": "Rapid",
+        "event_count": 387,
+        "is_complete": true
+      }
+    ],
+    "players_present": [
+      {
+        "id": 101,
+        "name": "Andrei Popescu",
+        "team_side": "home",
+        "appearance_count": 2
+      },
+      {
+        "id": 102,
+        "name": "Mihai Ionescu",
+        "team_side": "home",
+        "appearance_count": 2
+      },
+      {
+        "id": 201,
+        "name": "Cristian Dumitru",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 202,
+        "name": "Vlad Stan",
+        "team_side": "away",
+        "appearance_count": 2
+      }
+    ],
+    "event_type_breakdown": {
+      "pass": 612,
+      "shot": 28,
+      "carry": 134,
+      "dribble": 22,
+      "goal": 3
+    },
+    "total_events": 799,
+    "completeness": {
+      "has_all_lineups": true,
+      "has_coordinates_for_all_passes": true,
+      "minimum_events_per_match": true,
+      "missing_match_ids": []
+    },
+    "warnings": []
+  },
+  "aggregates": [
+    {
+      "player_id": 101,
+      "player_name": "Andrei Popescu",
+      "team_side": "home",
+      "cumulative_xt": 0.84,
+      "successful_pass_count": 35,
+      "average_xt_per_pass": 0.024,
+      "matches_played": 2,
+      "top_passes": [
+        {
+          "match_id": 1001,
+          "timestamp": 600,
+          "start_zone_id": 85,
+          "end_zone_id": 158,
+          "xt_delta": 0.18,
+          "receiver_player_id": 102,
+          "receiver_player_name": "Mihai Ionescu"
+        },
+        {
+          "match_id": 1001,
+          "timestamp": 1850,
+          "start_zone_id": 72,
+          "end_zone_id": 141,
+          "xt_delta": 0.12,
+          "receiver_player_id": 102,
+          "receiver_player_name": "Mihai Ionescu"
+        },
+        {
+          "match_id": 1002,
+          "timestamp": 2400,
+          "start_zone_id": 88,
+          "end_zone_id": 155,
+          "xt_delta": 0.07,
+          "receiver_player_id": null,
+          "receiver_player_name": null
+        }
+      ]
+    },
+    {
+      "player_id": 202,
+      "player_name": "Vlad Stan",
+      "team_side": "away",
+      "cumulative_xt": 0.71,
+      "successful_pass_count": 85,
+      "average_xt_per_pass": 0.0084,
+      "matches_played": 2,
+      "top_passes": [
+        {
+          "match_id": 1001,
+          "timestamp": 400,
+          "start_zone_id": 24,
+          "end_zone_id": 42,
+          "xt_delta": 0.04,
+          "receiver_player_id": 101,
+          "receiver_player_name": "Andrei Popescu"
+        },
+        {
+          "match_id": 1002,
+          "timestamp": 900,
+          "start_zone_id": 18,
+          "end_zone_id": 35,
+          "xt_delta": 0.03,
+          "receiver_player_id": 101,
+          "receiver_player_name": "Andrei Popescu"
+        },
+        {
+          "match_id": 1002,
+          "timestamp": 1700,
+          "start_zone_id": 33,
+          "end_zone_id": 51,
+          "xt_delta": 0.025,
+          "receiver_player_id": null,
+          "receiver_player_name": null
+        }
+      ]
+    },
+    {
+      "player_id": 102,
+      "player_name": "Mihai Ionescu",
+      "team_side": "home",
+      "cumulative_xt": 0.32,
+      "successful_pass_count": 7,
+      "average_xt_per_pass": 0.0457,
+      "matches_played": 2,
+      "top_passes": [
+        {
+          "match_id": 1001,
+          "timestamp": 2700,
+          "start_zone_id": 110,
+          "end_zone_id": 158,
+          "xt_delta": 0.20,
+          "receiver_player_id": 101,
+          "receiver_player_name": "Andrei Popescu"
+        },
+        {
+          "match_id": 1002,
+          "timestamp": 2100,
+          "start_zone_id": 95,
+          "end_zone_id": 141,
+          "xt_delta": 0.10,
+          "receiver_player_id": 101,
+          "receiver_player_name": "Andrei Popescu"
+        },
+        {
+          "match_id": 1002,
+          "timestamp": 2500,
+          "start_zone_id": 120,
+          "end_zone_id": 155,
+          "xt_delta": 0.08,
+          "receiver_player_id": null,
+          "receiver_player_name": null
+        }
+      ]
+    },
+    {
+      "player_id": 201,
+      "player_name": "Cristian Dumitru",
+      "team_side": "away",
+      "cumulative_xt": 0.05,
+      "successful_pass_count": 12,
+      "average_xt_per_pass": 0.00417,
+      "matches_played": 2,
+      "top_passes": [
+        {
+          "match_id": 1001,
+          "timestamp": 200,
+          "start_zone_id": 15,
+          "end_zone_id": 28,
+          "xt_delta": 0.005,
+          "receiver_player_id": 202,
+          "receiver_player_name": "Vlad Stan"
+        },
+        {
+          "match_id": 1002,
+          "timestamp": 1100,
+          "start_zone_id": 20,
+          "end_zone_id": 30,
+          "xt_delta": 0.003,
+          "receiver_player_id": null,
+          "receiver_player_name": null
+        },
+        {
+          "match_id": 1002,
+          "timestamp": 1500,
+          "start_zone_id": 25,
+          "end_zone_id": 38,
+          "xt_delta": 0.002,
+          "receiver_player_id": 202,
+          "receiver_player_name": "Vlad Stan"
+        }
+      ]
+    }
+  ]
+}
