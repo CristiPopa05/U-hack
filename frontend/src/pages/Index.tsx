@@ -4,6 +4,8 @@ import { TEAMS, STANDINGS } from "@/lib/mock-data";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ImageUploadDemo } from "@/components/ui/image-upload-demo";
 import { ArrowRight, Loader2, Sparkles, Activity, Search, Clock, Upload } from "lucide-react";
 import { TeamCrest } from "@/components/TeamCrest";
 import uClujCrest from "@/assets/u-cluj-crest.png";
@@ -26,19 +28,8 @@ const Index = () => {
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [history, setHistory] = useState<HistoryEntry[]>(INITIAL_HISTORY);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const uploadInputRef = useRef<HTMLInputElement>(null);
-
-  const handleUploadClick = () => uploadInputRef.current?.click();
-  const handleUploadFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    toast({
-      title: `Uploaded ${files.length} file${files.length > 1 ? "s" : ""}`,
-      description: Array.from(files).map((f) => f.name).join(", ").slice(0, 100),
-    });
-    e.target.value = "";
-  };
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -139,22 +130,26 @@ const Index = () => {
     <main className="min-h-screen relative">
       {/* Top right action */}
       <div className="absolute top-6 right-6 z-20">
-        <input
-          ref={uploadInputRef}
-          type="file"
-          multiple
-          accept=".csv,.xlsx,.xls,.json,.pdf,.txt"
-          onChange={handleUploadFiles}
-          className="hidden"
-        />
         <Button
-          onClick={handleUploadClick}
+          onClick={() => setUploadDialogOpen(true)}
           className="h-10 bg-foreground text-background hover:bg-foreground/90 border border-border/40 shadow-sm"
         >
           <Upload className="w-4 h-4 mr-2" />
           Upload New Statistics
         </Button>
       </div>
+
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Upload New Statistics</DialogTitle>
+            <DialogDescription>
+              Add one JSON file by click or drag-and-drop, then confirm to send.
+            </DialogDescription>
+          </DialogHeader>
+          <ImageUploadDemo />
+        </DialogContent>
+      </Dialog>
 
       {/* Hero */}
       <section className="relative max-w-7xl mx-auto px-6 pt-20 pb-24">

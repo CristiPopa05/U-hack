@@ -91,7 +91,7 @@ const Analysis = () => {
   };
 
   const allLayers: { id: Layer; label: string; icon: React.ReactNode; sub: string; teamOnly?: boolean; playerOnly?: boolean }[] = [
-    { id: "xt", label: "Defensive xT Grid", icon: <Layers className="w-3.5 h-3.5" />, sub: "Threat zones vs U-Cluj" },
+    { id: "xt", label: "xT Grid", icon: <Layers className="w-3.5 h-3.5" />, sub: "Threat zones vs U-Cluj" },
     { id: "leaders", label: "xT Leaders By Zone", icon: <Sparkles className="w-3.5 h-3.5" />, sub: "Top xT contributor per zone · 6×5 grid", teamOnly: true },
     { id: "network", label: "Goal DNA Network", icon: <Network className="w-3.5 h-3.5" />, sub: "Team-wide pass connections", teamOnly: true },
     { id: "passes", label: "Made Passes", icon: <Network className="w-3.5 h-3.5" />, sub: "Pass arrows · green = success, red = failed", playerOnly: true },
@@ -301,7 +301,9 @@ const Analysis = () => {
               <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Panel A</p>
-                  <h2 className="font-display text-lg font-semibold tracking-tight mt-1">The Pitch · 8x6 zones</h2>
+                  <h2 className="font-display text-lg font-semibold tracking-tight mt-1">
+                    The Pitch · {layer === "leaders" ? "8x6 zones" : "16x12 zones"}
+                  </h2>
                 </div>
                 <div className="flex flex-wrap gap-1.5 p-1 rounded-lg bg-secondary/40 border border-border/60">
                   {layers.map((l) => (
