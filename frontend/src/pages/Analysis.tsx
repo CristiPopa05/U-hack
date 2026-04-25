@@ -259,28 +259,7 @@ const Analysis = () => {
         </div>
       )}
 
-      {/* Quick stats strip */}
-      <section className="max-w-[1400px] mx-auto px-6 pt-6">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {[
-            { k: "1.78", v: "xG / match", icon: TrendingUp },
-            { k: "57%", v: "Avg possession", icon: Activity },
-            { k: "12.4", v: "Final 3rd entries", icon: ChevronRight },
-            { k: "4.2 s", v: "Recovery → shot", icon: Sparkles },
-            { k: matchWindow === "season" ? "34" : matchWindow, v: "Matches scraped", icon: Database },
-          ].map((s) => (
-            <div key={s.v} className="panel p-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-secondary/60 border border-border/60 flex items-center justify-center">
-                <s.icon className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-display text-xl leading-none">{s.k}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">{s.v}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+
 
       {/* Dashboard grid */}
       <section className="max-w-[1400px] mx-auto px-6 py-6">

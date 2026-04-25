@@ -301,37 +301,58 @@ const Index = () => {
           <p className="text-xs text-muted-foreground">Updated · Play-off MD 5</p>
         </div>
         <div className="panel overflow-hidden">
-          <div className="grid grid-cols-12 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-muted-foreground border-b border-border/60 bg-secondary/30">
-            <div className="col-span-1">#</div>
-            <div className="col-span-5">Club</div>
-            <div className="col-span-1 text-center">P</div>
-            <div className="col-span-1 text-center">W</div>
-            <div className="col-span-1 text-center">D</div>
-            <div className="col-span-1 text-center">L</div>
-            <div className="col-span-1 text-center">GD</div>
-            <div className="col-span-1 text-right">Pts</div>
+          <div className="flex items-center px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-muted-foreground border-b border-border/60 bg-secondary/30">
+            <div className="w-8">#</div>
+            <div className="flex-1 min-w-[120px]">ECHIPA</div>
+            <div className="w-10 text-center">MJ</div>
+            <div className="w-10 text-center">V</div>
+            <div className="w-10 text-center">E</div>
+            <div className="w-10 text-center">Î</div>
+            <div className="w-12 text-center">G</div>
+            <div className="w-10 text-center">DG</div>
+            <div className="w-12 text-center">P</div>
+            <div className="w-[180px] text-center">FORMĂ</div>
           </div>
           {STANDINGS.map((row, i) => (
             <div
               key={row.team}
-              className={`grid grid-cols-12 px-5 py-3 text-sm items-center border-b border-border/40 last:border-0 ${
+              className={`flex items-center px-5 py-2.5 text-sm border-b border-border/40 last:border-0 ${
                 i % 2 === 0 ? "bg-transparent" : "bg-secondary/20"
-              } ${row.team === "U Cluj" ? "bg-foreground/5" : ""}`}
+              } ${row.team === "'U' Cluj" ? "bg-foreground/5" : ""}`}
             >
-              <div className="col-span-1 text-muted-foreground font-mono text-xs">{String(row.pos).padStart(2, "0")}</div>
-              <div className="col-span-5 flex items-center gap-3">
-                <span className={`w-1 h-6 rounded-full ${row.pos <= 3 ? "bg-foreground" : row.pos <= 6 ? "bg-muted-foreground" : "bg-border"}`} />
+              <div className="w-8 flex-shrink-0">
+                <div className="w-[22px] h-[22px] flex items-center justify-center rounded-[3px] font-bold text-xs bg-transparent text-foreground">
+                  {row.pos}.
+                </div>
+              </div>
+              <div className="flex-1 min-w-[120px] flex items-center gap-3">
                 <TeamCrest short={row.team} teamName={row.team} size={24} />
-                <span className={row.team === "U Cluj" ? "font-semibold" : ""}>{row.team}</span>
+                <span className={row.team === "'U' Cluj" ? "font-semibold" : ""}>{row.team}</span>
               </div>
-              <div className="col-span-1 text-center text-muted-foreground">{row.p}</div>
-              <div className="col-span-1 text-center">{row.w}</div>
-              <div className="col-span-1 text-center text-muted-foreground">{row.d}</div>
-              <div className="col-span-1 text-center text-muted-foreground">{row.l}</div>
-              <div className={`col-span-1 text-center font-mono text-xs ${row.gd >= 0 ? "text-foreground" : "text-muted-foreground"}`}>
-                {row.gd > 0 ? `+${row.gd}` : row.gd}
+              <div className="w-10 text-center font-medium">{row.p}</div>
+              <div className="w-10 text-center font-medium">{row.w}</div>
+              <div className="w-10 text-center font-medium">{row.d}</div>
+              <div className="w-10 text-center font-medium">{row.l}</div>
+              <div className="w-12 text-center font-medium">{row.g}</div>
+              <div className="w-10 text-center font-medium">{row.gd}</div>
+              <div className="w-12 text-center font-display font-bold">
+                <span className="underline underline-offset-[3px] decoration-1">{row.pts}</span>
               </div>
-              <div className="col-span-1 text-right font-display font-semibold">{row.pts}</div>
+              <div className="w-[180px] flex items-center justify-center gap-1">
+                {row.form.map((f, idx) => (
+                  <span
+                    key={idx}
+                    className={`w-[22px] h-[22px] flex items-center justify-center rounded-[3px] text-[10px] font-bold ${
+                      f === "V" ? "bg-green-600 text-white" :
+                      f === "E" ? "bg-amber-500 text-white" :
+                      f === "Î" ? "bg-red-600 text-white" :
+                      "bg-zinc-600 text-white"
+                    }`}
+                  >
+                    {f}
+                  </span>
+                ))}
+              </div>
             </div>
           ))}
         </div>
