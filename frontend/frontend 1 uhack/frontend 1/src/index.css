@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* U-xT Design System — Premium Monochrome */
+@layer base {
+  :root {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 6%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 0% 100%;
+    --destructive-foreground: 0 0% 6%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 14%;
+    --ring: 0 0% 80%;
+
+    --radius: 0.625rem;
+
+    /* Monochrome scale */
+    --mono-50: 0 0% 98%;
+    --mono-100: 0 0% 92%;
+    --mono-200: 0 0% 82%;
+    --mono-300: 0 0% 70%;
+    --mono-400: 0 0% 55%;
+    --mono-500: 0 0% 40%;
+    --mono-600: 0 0% 28%;
+    --mono-700: 0 0% 18%;
+    --mono-800: 0 0% 12%;
+    --mono-900: 0 0% 8%;
+    --mono-950: 0 0% 4%;
+
+    /* Pitch */
+    --pitch-base: 0 0% 7%;
+    --pitch-line: 0 0% 75%;
+
+    /* Effects */
+    --gradient-radial: radial-gradient(circle at 50% 0%, hsl(0 0% 14%), hsl(0 0% 6%) 70%);
+    --gradient-panel: linear-gradient(180deg, hsl(0 0% 9%), hsl(0 0% 7%));
+    --gradient-cta: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 88%));
+    --shadow-panel: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 20px 40px -20px hsl(0 0% 0% / 0.6);
+    --shadow-glow: 0 0 60px hsl(0 0% 100% / 0.08);
+
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 6%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 0 0% 80%;
+  }
+
+  .dark {
+    /* Same — app is dark by default */
+    --background: 0 0% 6%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 6%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 0% 100%;
+    --destructive-foreground: 0 0% 6%;
+    --border: 0 0% 16%;
+    --input: 0 0% 14%;
+    --ring: 0 0% 80%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { @apply dark; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, hsl(0 0% 14% / 0.6), transparent 60%),
+      radial-gradient(900px 500px at 0% 100%, hsl(0 0% 12% / 0.5), transparent 60%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .panel {
+    background: var(--gradient-panel);
+    box-shadow: var(--shadow-panel);
+    @apply border border-border/80 rounded-xl;
+  }
+  .text-gradient-mono {
+    background: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 55%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .grain::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(hsl(0 0% 100% / 0.03) 1px, transparent 1px);
+    background-size: 3px 3px;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  .scroll-fade-mask {
+    mask-image: linear-gradient(180deg, black 85%, transparent);
+  }
+  .scrollbar-thin-mono {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(0 0% 25%) transparent;
+  }
+  .scrollbar-thin-mono::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin-mono::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin-mono::-webkit-scrollbar-thumb {
+    background-color: hsl(0 0% 25%);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin-mono::-webkit-scrollbar-thumb:hover { background-color: hsl(0 0% 40%); }
+}
+
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900;
+  src: url('https://rsms.me/inter/font-files/InterVariable.woff2') format('woff2-variations'); font-display: swap; }
