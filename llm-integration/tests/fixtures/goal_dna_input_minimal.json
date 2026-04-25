@@ -1,0 +1,177 @@
+{
+  "ingestion": {
+    "matches_covered": [
+      {
+        "match_id": 2001,
+        "date": "2026-03-22",
+        "opponent": "FCSB",
+        "event_count": 401,
+        "is_complete": true
+      },
+      {
+        "match_id": 2002,
+        "date": "2026-04-12",
+        "opponent": "Rapid",
+        "event_count": 388,
+        "is_complete": true
+      }
+    ],
+    "players_present": [
+      {
+        "id": 9001,
+        "name": "Marian Crisan",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 9002,
+        "name": "Ovidiu Hoban",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 9003,
+        "name": "Adi Cristea",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 9004,
+        "name": "Dani Coman",
+        "team_side": "away",
+        "appearance_count": 2
+      },
+      {
+        "id": 9005,
+        "name": "Sergiu Bus",
+        "team_side": "away",
+        "appearance_count": 1
+      }
+    ],
+    "event_type_breakdown": {
+      "pass": 605,
+      "shot": 31,
+      "carry": 128,
+      "dribble": 18,
+      "goal": 2
+    },
+    "total_events": 789,
+    "completeness": {
+      "has_all_lineups": true,
+      "has_coordinates_for_all_passes": true,
+      "minimum_events_per_match": true,
+      "missing_match_ids": []
+    },
+    "warnings": []
+  },
+  "graphs": [
+    {
+      "match_id": 2001,
+      "goal_scorer_id": 9003,
+      "goal_timestamp": 1842,
+      "duration_seconds": 17.5,
+      "is_synthesised": false,
+      "edges": [
+        {
+          "from_player_id": 9002,
+          "from_player_name": "Ovidiu Hoban",
+          "to_player_id": 9001,
+          "to_player_name": "Marian Crisan",
+          "from_zone_id": 88,
+          "to_zone_id": 120,
+          "timestamp_offset": -16.2,
+          "weight": 1
+        },
+        {
+          "from_player_id": 9001,
+          "from_player_name": "Marian Crisan",
+          "to_player_id": 9001,
+          "to_player_name": "Marian Crisan",
+          "from_zone_id": 120,
+          "to_zone_id": 152,
+          "timestamp_offset": -10.8,
+          "weight": 1
+        },
+        {
+          "from_player_id": 9001,
+          "from_player_name": "Marian Crisan",
+          "to_player_id": 9004,
+          "to_player_name": "Dani Coman",
+          "from_zone_id": 152,
+          "to_zone_id": 168,
+          "timestamp_offset": -6.4,
+          "weight": 1
+        },
+        {
+          "from_player_id": 9004,
+          "from_player_name": "Dani Coman",
+          "to_player_id": 9003,
+          "to_player_name": "Adi Cristea",
+          "from_zone_id": 168,
+          "to_zone_id": 170,
+          "timestamp_offset": -2.1,
+          "weight": 1
+        },
+        {
+          "from_player_id": 9003,
+          "from_player_name": "Adi Cristea",
+          "to_player_id": 9003,
+          "to_player_name": "Adi Cristea",
+          "from_zone_id": 170,
+          "to_zone_id": 170,
+          "timestamp_offset": -0.3,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "match_id": 2002,
+      "goal_scorer_id": 9005,
+      "goal_timestamp": 2715,
+      "duration_seconds": 18.2,
+      "is_synthesised": false,
+      "edges": [
+        {
+          "from_player_id": 9002,
+          "from_player_name": "Ovidiu Hoban",
+          "to_player_id": 9001,
+          "to_player_name": "Marian Crisan",
+          "from_zone_id": 72,
+          "to_zone_id": 120,
+          "timestamp_offset": -17.6,
+          "weight": 1
+        },
+        {
+          "from_player_id": 9001,
+          "from_player_name": "Marian Crisan",
+          "to_player_id": 9001,
+          "to_player_name": "Marian Crisan",
+          "from_zone_id": 120,
+          "to_zone_id": 152,
+          "timestamp_offset": -11.4,
+          "weight": 1
+        },
+        {
+          "from_player_id": 9001,
+          "from_player_name": "Marian Crisan",
+          "to_player_id": 9005,
+          "to_player_name": "Sergiu Bus",
+          "from_zone_id": 152,
+          "to_zone_id": 170,
+          "timestamp_offset": -4.7,
+          "weight": 1
+        },
+        {
+          "from_player_id": 9005,
+          "from_player_name": "Sergiu Bus",
+          "to_player_id": 9005,
+          "to_player_name": "Sergiu Bus",
+          "from_zone_id": 170,
+          "to_zone_id": 170,
+          "timestamp_offset": -0.5,
+          "weight": 1
+        }
+      ]
+    }
+  ]
+}
