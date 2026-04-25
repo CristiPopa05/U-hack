@@ -18,5 +18,6 @@ def test_ingestion_agent_smoke():
 
     assert isinstance(result, IngestionMetadata)
     assert result.total_events == len(bundle.events)
-    assert sum(result.event_type_breakdown.values()) == result.total_events
+    breakdown = result.event_type_breakdown
+    assert sum(breakdown.model_dump(by_alias=True).values()) == result.total_events
     assert len(result.warnings) > 0

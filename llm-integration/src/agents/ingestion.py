@@ -1,6 +1,7 @@
 import os
+from collections import Counter
 from src.agents.base import call_structured
-from src.schemas.ingestion import RawScrapedBundle, IngestionMetadata
+from src.schemas.ingestion import RawScrapedBundle, IngestionMetadata, EventTypeBreakdown
 
 INGESTION_PROMPT = """You are a sports-data validation agent in a football tactical-analysis pipeline.
 
@@ -23,8 +24,46 @@ Bundle:
 """
 
 
-def run_ingestion(bundle: RawScrapedBundle) -> IngestionMetadata:
+def run_ingestion(bundle: RawScrapedBundle, max_retries: int = 3) -> IngestionMetadata:
     """Phase 1 entrypoint. Pure function: bundle in, metadata out."""
     prompt = INGESTION_PROMPT.format(bundle_json=bundle.model_dump_json())
     model = os.environ.get("LLM_MODEL_INGESTION", "gemini-2.5-flash")
-    return call_structured(model, prompt, IngestionMetadata)
+
+    # Retry on transient LLM failures (e.g. invalid JSON, out-of-range numbers)
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            result = call_structured(model, prompt, IngestionMetadata)
+            break
+        except Exception as e:
+            last_error = e
+            if attempt == max_retries - 1:
+                raise last_error
+
+    # --- Post-processing: override deterministic counts with exact values ---
+    # LLMs are unreliable at counting items in lists; code does this perfectly.
+    result.total_events = len(bundle.events)
+
+    type_counts = Counter(e.event_type for e in bundle.events)
+    result.event_type_breakdown = EventTypeBreakdown(
+        pass_count=type_counts.get("pass", 0),
+        shot=type_counts.get("shot", 0),
+        carry=type_counts.get("carry", 0),
+        dribble=type_counts.get("dribble", 0),
+        goal=type_counts.get("goal", 0),
+    )
+
+    # Fix per-match event_count
+    match_event_counts = Counter(e.match_id for e in bundle.events)
+    for ms in result.matches_covered:
+        ms.event_count = match_event_counts.get(ms.match_id, 0)
+
+    # Fix per-player appearance_count (distinct match_ids per player)
+    player_matches: dict[int, set[int]] = {}
+    for e in bundle.events:
+        if e.player_id is not None:
+            player_matches.setdefault(e.player_id, set()).add(e.match_id)
+    for ps in result.players_present:
+        ps.appearance_count = len(player_matches.get(ps.id, set()))
+
+    return result
