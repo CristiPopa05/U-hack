@@ -60,10 +60,22 @@ class CompletenessFlags(BaseModel):
     missing_match_ids: list[int]
 
 
+class EventTypeBreakdown(BaseModel):
+    """Counts per event type. The Gemini Developer API does not support
+    additionalProperties, so we use explicit fields instead of dict[str, int]."""
+    pass_count: int = Field(0, alias="pass")
+    shot: int = 0
+    carry: int = 0
+    dribble: int = 0
+    goal: int = 0
+
+    model_config = {"populate_by_name": True}
+
+
 class IngestionMetadata(BaseModel):
     matches_covered: list[MatchSummary]
     players_present: list[PlayerSummary]
-    event_type_breakdown: dict[str, int]
+    event_type_breakdown: EventTypeBreakdown
     total_events: int
     completeness: CompletenessFlags
     warnings: list[str] = Field(default_factory=list)
