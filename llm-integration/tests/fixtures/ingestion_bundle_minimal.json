@@ -1,0 +1,159 @@
+{
+  "opponent_id": 1,
+  "opponent_name": "U Cluj",
+  "match_window": ["2026-03-01", "2026-04-25"],
+  "matches": [
+    {
+      "match_id": 1001,
+      "date": "2026-03-15",
+      "home_team": "U Cluj",
+      "away_team": "FCSB",
+      "tournament": "SuperLiga"
+    },
+    {
+      "match_id": 1002,
+      "date": "2026-04-05",
+      "home_team": "Rapid",
+      "away_team": "U Cluj",
+      "tournament": "SuperLiga"
+    }
+  ],
+  "players": [
+    {
+      "id": 101,
+      "name": "Andrei Popescu",
+      "team_side": "home",
+      "position": "MF"
+    },
+    {
+      "id": 102,
+      "name": "Mihai Ionescu",
+      "team_side": "home",
+      "position": "FW"
+    },
+    {
+      "id": 201,
+      "name": "Cristian Dumitru",
+      "team_side": "away",
+      "position": "MF"
+    },
+    {
+      "id": 202,
+      "name": "Vlad Stan",
+      "team_side": "away",
+      "position": "DF"
+    }
+  ],
+  "events": [
+    {
+      "match_id": 1001,
+      "player_id": 101,
+      "event_type": "pass",
+      "timestamp": 145,
+      "start_x": 32.5,
+      "start_y": 50.0,
+      "end_x": 48.2,
+      "end_y": 55.7,
+      "is_success": true
+    },
+    {
+      "match_id": 1001,
+      "player_id": 102,
+      "event_type": "carry",
+      "timestamp": 312,
+      "start_x": 60.1,
+      "start_y": 40.3,
+      "end_x": 72.8,
+      "end_y": 38.9,
+      "is_success": true
+    },
+    {
+      "match_id": 1001,
+      "player_id": 102,
+      "event_type": "shot",
+      "timestamp": 320,
+      "start_x": 88.0,
+      "start_y": 50.2,
+      "end_x": 100.0,
+      "end_y": 50.0,
+      "is_success": false
+    },
+    {
+      "match_id": 1001,
+      "player_id": 101,
+      "event_type": "pass",
+      "timestamp": 1450,
+      "start_x": null,
+      "start_y": null,
+      "end_x": null,
+      "end_y": null,
+      "is_success": true
+    },
+    {
+      "match_id": 1001,
+      "player_id": 102,
+      "event_type": "goal",
+      "timestamp": 2800,
+      "start_x": 92.5,
+      "start_y": 48.0,
+      "end_x": 100.0,
+      "end_y": 50.0,
+      "is_success": true
+    },
+    {
+      "match_id": 1002,
+      "player_id": 201,
+      "event_type": "pass",
+      "timestamp": 220,
+      "start_x": 25.0,
+      "start_y": 60.0,
+      "end_x": 40.0,
+      "end_y": 65.0,
+      "is_success": true
+    },
+    {
+      "match_id": 1002,
+      "player_id": 202,
+      "event_type": "pass",
+      "timestamp": 480,
+      "start_x": 15.5,
+      "start_y": 30.0,
+      "end_x": 30.2,
+      "end_y": 28.5,
+      "is_success": true
+    },
+    {
+      "match_id": 1002,
+      "player_id": 201,
+      "event_type": "dribble",
+      "timestamp": 1100,
+      "start_x": 55.0,
+      "start_y": 50.0,
+      "end_x": 62.0,
+      "end_y": 52.0,
+      "is_success": true
+    },
+    {
+      "match_id": 1002,
+      "player_id": 201,
+      "event_type": "shot",
+      "timestamp": 2200,
+      "start_x": 80.0,
+      "start_y": 45.0,
+      "end_x": 100.0,
+      "end_y": 50.0,
+      "is_success": false
+    },
+    {
+      "match_id": 1002,
+      "player_id": null,
+      "event_type": "pass",
+      "timestamp": 2650,
+      "start_x": 50.0,
+      "start_y": 50.0,
+      "end_x": 65.0,
+      "end_y": 55.0,
+      "is_success": false
+    }
+  ]
+}
