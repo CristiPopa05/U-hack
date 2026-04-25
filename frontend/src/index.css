@@ -146,5 +146,16 @@
   .scrollbar-thin-mono::-webkit-scrollbar-thumb:hover { background-color: hsl(0 0% 40%); }
 }
 
+@keyframes logo-reveal {
+  0%   { opacity: 0; transform: scale(0.92); filter: blur(12px); }
+  60%  { opacity: 0.85; filter: blur(2px); }
+  100% { opacity: 0.95; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes logo-glow-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900;
   src: url('https://rsms.me/inter/font-files/InterVariable.woff2') format('woff2-variations'); font-display: swap; }
