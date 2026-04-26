@@ -182,3 +182,18 @@ for file in files:
             print(f"Events inserted. ({len(events_payload)})")
     
     print("-" * 20)
+# După ultimul print("-" * 20), adaugă asta:
+print("Toate fișierele au fost procesate. Aștept confirmarea xT...")
+
+GC_FUNCTION_URL = "https://calculate-xt-483351897557.europe-west1.run.app"
+
+try:
+    req = urllib.request.Request(GC_FUNCTION_URL)
+    response = urllib.request.urlopen(req)
+    
+    if response.getcode() == 200:
+        print("Succes! xT-ul a fost calculat.")
+    else:
+        print(f"Eroare: {response.getcode()}")
+except Exception as e:
+    print(f"Eroare la conexiune: {str(e)}")

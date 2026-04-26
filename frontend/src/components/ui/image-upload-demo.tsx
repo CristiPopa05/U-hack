@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useImageUpload } from "@/components/ui/use-image-upload";
 
+import { uploadMatchData } from "@/lib/upload-service";
+
 export function ImageUploadDemo() {
   const {
     file,
@@ -19,13 +21,54 @@ export function ImageUploadDemo() {
     handleRemove,
   } = useImageUpload({
     onUpload: async (selectedFile) => {
-      const content = await selectedFile.text();
-      JSON.parse(content);
-      console.log("Confirmed statistics file:", selectedFile.name);
-      toast({
-        title: "Statistics queued",
-        description: `${selectedFile.name} is ready for your upload pipeline.`,
-      });
+      try {
+        toast({
+          title: "Processing upload...",
+          description: `Reading and parsing ${selectedFile.name}...`,
+        });
+
+        const buffer = await selectedFile.arrayBuffer();
+        let data = null;
+        
+        // Try multiple encodings just like the python script
+        const encodings = ['utf-8', 'utf-16le', 'utf-16be', 'windows-1252'];
+        for (const enc of encodings) {
+          try {
+            const decoder = new TextDecoder(enc, { fatal: true });
+            const text = decoder.decode(buffer);
+            data = JSON.parse(text);
+            break;
+          } catch (e) {
+            // Continue trying next encoding
+          }
+        }
+
+        if (!data) {
+          // Fallback if fatal true failed on all, just try default utf-8 and hope JSON parse survives
+          const text = new TextDecoder('utf-8').decode(buffer);
+          data = JSON.parse(text);
+        }
+
+        toast({
+          title: "Uploading to database...",
+          description: `Sending data from ${selectedFile.name}...`,
+        });
+
+        await uploadMatchData(data);
+
+        console.log("Confirmed statistics file:", selectedFile.name);
+        toast({
+          title: "Statistics uploaded successfully",
+          description: `${selectedFile.name} was successfully parsed and saved.`,
+        });
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: error.message || "An error occurred while uploading.",
+        });
+        throw error;
+      }
     },
   });
 
@@ -77,12 +120,15 @@ export function ImageUploadDemo() {
     try {
       await handleConfirmUpload();
       handleRemove();
-    } catch {
-      toast({
-        variant: "destructive",
-        title: "Invalid JSON file",
-        description: "Please upload a valid JSON statistics file.",
-      });
+    } catch (error: any) {
+      // The onUpload function might already show a toast, but just in case:
+      if (!error || !error.message) {
+        toast({
+          variant: "destructive",
+          title: "Invalid JSON file",
+          description: "Please upload a valid JSON statistics file.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
