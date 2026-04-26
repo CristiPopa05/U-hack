@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Link, useParams } from "react-router-dom";
-import { TEAMS, PLAYMAKERS, ALERTS, MADE_PASSES_BY_PLAYER, MADE_PASSES_TEAM } from "@/lib/mock-data";
+import { TEAMS, PLAYMAKERS, ALERTS as MOCK_ALERTS, MADE_PASSES_BY_PLAYER, MADE_PASSES_TEAM } from "@/lib/mock-data";
+import { fetchTeamSpatialMatrices, sumMatrices, normalizeMatrix, fetchPlayerLeadersByZone, fetchTeamGoalSequences, fetchPlayerPasses, fetchTeamPasses, fetchTopPlaymakers, type Playmaker, type LeaderZone, type GoalSequence, type MadePass } from "@/lib/spatial-service";
+import { generateAIVerdict } from "@/lib/ai-service";
 import { Pitch } from "@/components/Pitch";
 import { TeamCrest } from "@/components/TeamCrest";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ import {
   Database,
   RotateCcw,
   User,
+  ArrowRight
 } from "lucide-react";
 
 type Layer = "xt" | "passes" | "network" | "leaders";
@@ -42,26 +45,26 @@ const PIPELINE_STEPS = [
   "Running 5-Phase LLM Agent...",
 ];
 
-const TACTICAL_VERDICT = [
+const DEFAULT_TACTICAL_VERDICT = [
   {
     phase: "Phase 1 & 2",
     title: "Zone Analysis",
-    body: "Opponent heavily overloads the left half-spaces, with 62% of build-up actions funnelled through the LCM–LB corridor. Right side remains structurally underused.",
+    body: "FC Universitatea Cluj heavily relies on central progression and the left half-space. Build-up through the defensive midfielder is effective, but the right flank remains significantly underutilized, making progression predictable against organized mid-blocks.",
   },
   {
     phase: "Phase 3",
     title: "Engine — xT Attribution",
-    body: "Identified Player #10 as primary xT contributor (0.41 / 90) via progressive passes breaking the second line. Removing him collapses 47% of generated threat.",
+    body: "Dan Nistor serves as the primary xT generator, orchestrating play with 0.45 xT / 90 via progressive passes breaking the second line. Removing his influence on the left side collapses 40% of their generated threat.",
   },
   {
     phase: "Phase 4",
     title: "Vulnerability Map",
-    body: "Critical gap detected in Zone 14 during defensive transitions — pivot drops late, opening a 12m corridor between lines on opponent turnovers.",
+    body: "Critical gap detected in the left defensive half-space during transitions. When the left-back advances, the LCM often fails to cover the space, leaving a 15m vertical channel exposed to rapid counter-attacks.",
   },
   {
     phase: "Phase 5",
-    title: "Goal DNA",
-    body: "Pattern recognition: 80% of last 5 conceded goals originated from cutbacks to the edge of the box following wide overloads. Block the cutback lane, neutralize the pattern.",
+    title: "Goal DNA & Suggestions",
+    body: "Suggestion for U Cluj: Shift build-up variation to the right flank to reduce predictability and stretch opponents. Defensively, implement a strict rotational cover rule for the LCM when the left-back joins the attack, as 80% of transition goals conceded exploit that left corridor.",
   },
 ];
 
@@ -72,9 +75,21 @@ const Analysis = () => {
   const [matchWindow, setMatchWindow] = useState("5");
   const [isRunning, setIsRunning] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const [hasData, setHasData] = useState(true);
+  const [hasData, setHasData] = useState(false);
   const [expandedRoster, setExpandedRoster] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [realXtMatrix, setRealXtMatrix] = useState<number[][] | null>(null);
+  const [realLeaderZones, setRealLeaderZones] = useState<LeaderZone[] | null>(null);
+  const [goalSequences, setGoalSequences] = useState<GoalSequence[]>([]);
+  const [activeSeqIndex, setActiveSeqIndex] = useState(0);
+  const [realPlayerPasses, setRealPlayerPasses] = useState<MadePass[]>([]);
+  const [realTeamPasses, setRealTeamPasses] = useState<MadePass[]>([]);
+  const [realPlaymakers, setRealPlaymakers] = useState<Playmaker[]>([]);
+  const [activePassMatchIndex, setActivePassMatchIndex] = useState(0);
+  const [loadingPasses, setLoadingPasses] = useState(false);
+  const [aiVerdict, setAiVerdict] = useState<any[]>(DEFAULT_TACTICAL_VERDICT);
+  const [aiAlerts, setAiAlerts] = useState<any[]>(MOCK_ALERTS);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUploadClick = () => fileInputRef.current?.click();
@@ -93,11 +108,11 @@ const Analysis = () => {
   const allLayers: { id: Layer; label: string; icon: React.ReactNode; sub: string; teamOnly?: boolean; playerOnly?: boolean }[] = [
     { id: "xt", label: "xT Grid", icon: <Layers className="w-3.5 h-3.5" />, sub: "Threat zones vs U-Cluj" },
     { id: "leaders", label: "xT Leaders By Zone", icon: <Sparkles className="w-3.5 h-3.5" />, sub: "Top xT contributor per zone · 6×5 grid", teamOnly: true },
-    { id: "network", label: "Goal DNA Network", icon: <Network className="w-3.5 h-3.5" />, sub: "Team-wide pass connections", teamOnly: true },
-    { id: "passes", label: "Made Passes", icon: <Network className="w-3.5 h-3.5" />, sub: "Pass arrows · green = success, red = failed", playerOnly: true },
+    { id: "network", label: "Goal Sequences", icon: <Network className="w-3.5 h-3.5" />, sub: "Recent goals build-up sequences", teamOnly: true },
+    { id: "passes", label: "Passes", icon: <Network className="w-3.5 h-3.5" />, sub: "Pass arrows · green = success, red = failed", playerOnly: true },
   ];
 
-  const playmakers = PLAYMAKERS.default;
+  const playmakers = realPlaymakers;
   const topPlaymakers = playmakers.slice(0, 3);
   const selected = playmakers.find((p) => p.name === selectedPlayer) ?? null;
   const layers = allLayers.filter((l) => {
@@ -113,14 +128,119 @@ const Analysis = () => {
       ? "xt"
       : layer;
   const pitchFocus = selected && effectiveLayer === "xt" ? selected.focus : null;
+  const uniquePassMatches = Array.from(new Set(realPlayerPasses.map(p => p.match_id))).filter(Boolean) as string[];
+  const currentPassMatch = uniquePassMatches[activePassMatchIndex];
+
   const pitchPasses = effectiveLayer === "passes"
-    ? (selected ? MADE_PASSES_BY_PLAYER[selected.name] ?? [] : MADE_PASSES_TEAM)
+    ? (selected ? (realPlayerPasses.length > 0 ? realPlayerPasses.filter(p => p.match_id === currentPassMatch) : (MADE_PASSES_BY_PLAYER[selected.name] ?? [])) : (realTeamPasses.length > 0 ? realTeamPasses : MADE_PASSES_TEAM))
     : undefined;
 
-  const runScraper = () => {
+  const playerXtMatrix = selected ? realPlaymakers.find(p => p.name === selected.name)?.xtMatrix : null;
+  const normalizedPlayerXt = playerXtMatrix ? normalizeMatrix(playerXtMatrix).normalized : null;
+
+  useEffect(() => {
+    if (selectedPlayer && hasData && layer === "passes") {
+      setLoadingPasses(true);
+      const matchCount = parseInt(matchWindow, 10) || 5;
+      fetchPlayerPasses(team.name, selectedPlayer, matchCount).then(passes => {
+        setRealPlayerPasses(passes);
+        setActivePassMatchIndex(0);
+        setLoadingPasses(false);
+      }).catch(err => {
+        console.error("Error fetching passes:", err);
+        setLoadingPasses(false);
+      });
+    } else {
+      setRealPlayerPasses([]);
+    }
+  }, [selectedPlayer, hasData, layer, matchWindow, team.name]);
+
+  const runScraper = async () => {
     setIsRunning(true);
     setHasData(false);
     setActiveStep(0);
+    setRealXtMatrix(null);
+    setRealLeaderZones(null);
+    setGoalSequences([]);
+    setActiveSeqIndex(0);
+    setRealPlayerPasses([]);
+    setRealTeamPasses([]);
+    setRealPlaymakers([]);
+    setActivePassMatchIndex(0);
+    setIsGeneratingAI(false);
+
+    try {
+      const matchCount = parseInt(matchWindow, 10) || 5;
+      const matrices = await fetchTeamSpatialMatrices(team.name, matchCount);
+
+      if (matrices.length > 0) {
+        const summed = sumMatrices(matrices);
+        const { normalized } = normalizeMatrix(summed);
+        setRealXtMatrix(normalized);
+        console.log(`[Analysis] Loaded ${matrices.length} spatial matrices for ${team.name}, matchWindow=${matchCount}`);
+      } else {
+        setRealXtMatrix(null);
+        console.warn(`[Analysis] No spatial data found for ${team.name} — falling back to mock data`);
+        toast({
+          title: "No spatial data found",
+          description: `No xT matrices in the database for ${team.name}. Showing mock data.`,
+        });
+      }
+
+      // Fetch player leaders by zone
+      const leaders = await fetchPlayerLeadersByZone(team.name, matchCount);
+      if (leaders.length > 0) {
+        setRealLeaderZones(leaders);
+        console.log(`[Analysis] Loaded ${leaders.length} leader zones for ${team.name}`);
+      } else {
+        setRealLeaderZones(null);
+      }
+
+      // Fetch goal sequences
+      const seqs = await fetchTeamGoalSequences(team.name, matchCount);
+      setGoalSequences(seqs);
+      setActiveSeqIndex(0);
+
+      // Fetch all team passes
+      const tPasses = await fetchTeamPasses(team.name, matchCount);
+      setRealTeamPasses(tPasses);
+
+      // Fetch top playmakers
+      const pms = await fetchTopPlaymakers(team.name, matchCount);
+      setRealPlaymakers(pms);
+
+      // Generate AI Insights
+      try {
+        setIsGeneratingAI(true);
+        const aiResponse = await generateAIVerdict(team.name, pms, seqs);
+        if (aiResponse && aiResponse.verdict && aiResponse.alerts) {
+          setAiVerdict(aiResponse.verdict);
+          setAiAlerts(aiResponse.alerts);
+          toast({
+            title: "AI Analysis Complete",
+            description: `Successfully generated dynamic tactical insights for ${team.name}.`,
+          });
+        }
+      } catch (aiErr: any) {
+        console.error('[Analysis] Failed to generate AI verdict:', aiErr);
+        toast({
+          title: "AI Analysis Error",
+          description: aiErr.message || "Failed to generate dynamic insights. Showing fallback data.",
+          variant: "destructive"
+        });
+        setAiVerdict(DEFAULT_TACTICAL_VERDICT);
+        setAiAlerts(MOCK_ALERTS);
+      } finally {
+        setIsGeneratingAI(false);
+      }
+    } catch (err) {
+      console.error('[Analysis] Failed to fetch spatial data:', err);
+      setRealXtMatrix(null);
+      toast({
+        title: "Database error",
+        description: "Could not fetch spatial analysis data. Showing mock data.",
+      });
+    }
   };
 
   useEffect(() => {
@@ -169,7 +289,6 @@ const Analysis = () => {
                   <SelectItem value="3">Last 3 Matches</SelectItem>
                   <SelectItem value="5">Last 5 Matches</SelectItem>
                   <SelectItem value="10">Last 10 Matches</SelectItem>
-                  <SelectItem value="season">Full Season</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -264,14 +383,19 @@ const Analysis = () => {
       {/* Dashboard grid */}
       <section className="max-w-[1400px] mx-auto px-6 py-6">
         {!hasData ? (
-          <div className="panel p-16 text-center">
-            <div className="inline-flex w-14 h-14 rounded-full bg-secondary border border-border items-center justify-center mb-4">
-              <Database className="w-6 h-6 text-muted-foreground" />
+          <div className="panel p-10 max-w-2xl mx-auto mt-12 border-border/50 bg-background/50 backdrop-blur-sm shadow-xl">
+            <div className="text-center">
+              <div className="inline-flex w-14 h-14 rounded-full bg-secondary border border-border items-center justify-center mb-4">
+                <Activity className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <h3 className="font-display text-2xl font-semibold tracking-tight">Select Analysis Type</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Choose the number of matches to run for {team.name}.
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-4">
+                Use the <span className="text-muted-foreground">Match Window</span> selector and press <span className="text-muted-foreground">Start Analysis</span> above.
+              </p>
             </div>
-            <h3 className="font-display text-xl">Awaiting scraper run</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              Run the tactical scraper to pull the latest match data and generate the dossier.
-            </p>
           </div>
         ) : (
           <div className="grid grid-cols-12 gap-4">
@@ -317,14 +441,70 @@ const Analysis = () => {
                   </button>
                 </div>
               )}
-              <Pitch layer={effectiveLayer} focus={pitchFocus} passes={pitchPasses} />
+              <Pitch layer={effectiveLayer} focus={pitchFocus} passes={pitchPasses} xtMatrix={!selected ? realXtMatrix : normalizedPlayerXt} leaderZones={!selected ? realLeaderZones : null} goalSequence={effectiveLayer === "network" ? goalSequences[activeSeqIndex] : undefined} />
+              
+              {effectiveLayer === "network" && goalSequences.length > 0 && (
+                <div className="mt-4 flex items-center justify-between bg-foreground/5 p-3 rounded-lg border border-border/60">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveSeqIndex(i => Math.max(0, i - 1))}
+                    disabled={activeSeqIndex === 0}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Newer
+                  </Button>
+                  <div className="text-center">
+                    <p className="text-sm font-medium">Goal by {goalSequences[activeSeqIndex].scorer}</p>
+                    <p className="text-xs text-muted-foreground">Minute {goalSequences[activeSeqIndex].minute} (Match {goalSequences[activeSeqIndex].match_id})</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveSeqIndex(i => Math.min(goalSequences.length - 1, i + 1))}
+                    disabled={activeSeqIndex === goalSequences.length - 1}
+                  >
+                    Older <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              )}
+              {effectiveLayer === "network" && goalSequences.length === 0 && hasData && (
+                <div className="mt-4 text-center p-4 border border-border/60 rounded-lg text-sm text-muted-foreground">
+                  No goals found for {team.name} in the selected matches.
+                </div>
+              )}
+
+              {effectiveLayer === "passes" && selected && uniquePassMatches.length > 0 && (
+                <div className="mt-4 flex items-center justify-between bg-foreground/5 p-3 rounded-lg border border-border/60">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActivePassMatchIndex(i => Math.max(0, i - 1))}
+                    disabled={activePassMatchIndex <= 0}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Prev Match
+                  </Button>
+                  <div className="text-center">
+                    <p className="text-sm font-medium">{selected.name} Passes</p>
+                    <p className="text-xs text-muted-foreground">Match {activePassMatchIndex + 1} of {uniquePassMatches.length}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActivePassMatchIndex(i => Math.min(uniquePassMatches.length - 1, i + 1))}
+                    disabled={activePassMatchIndex >= uniquePassMatches.length - 1}
+                  >
+                    Next Match <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
                 <p>{allLayers.find((l) => l.id === effectiveLayer)?.sub}{selected ? ` · isolated to ${selected.name}` : ""}</p>
                 {effectiveLayer === "xt" ? (
                   <div className="flex items-center gap-2">
-                    <span>0.010</span>
+                    <span>{realXtMatrix ? "0%" : "0.010"}</span>
                     <span className="w-32 h-1.5 rounded-full bg-gradient-to-r from-[hsl(0_0%_8%)] to-[hsl(0_0%_95%)] border border-border/60" />
-                    <span>0.256</span>
+                    <span>{realXtMatrix ? "100%" : "0.256"}</span>
                   </div>
                 ) : effectiveLayer === "passes" ? (
                   <div className="flex items-center gap-3">
@@ -483,41 +663,52 @@ const Analysis = () => {
                   <AlertTriangle className="w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
-              <ul className="space-y-3">
-                {ALERTS.map((a, i) => {
-                  const isCritical = a.severity === "critical";
-                  return (
-                    <li
-                      key={i}
-                      className={`rounded-lg border p-4 transition ${
-                        isCritical
-                          ? "border-foreground/40 bg-foreground/[0.04]"
-                          : "border-border/60 bg-secondary/20"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-semibold ${
+              {isGeneratingAI ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
+                  <div className="relative mb-4">
+                    <div className="absolute inset-0 blur-xl bg-foreground/10 rounded-full" />
+                    <Loader2 className="w-8 h-8 text-foreground animate-spin relative" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-sm font-medium">Synthesizing Vulnerabilities...</p>
+                  <p className="text-xs text-muted-foreground mt-1">Analyzing expected threat & patterns with Gemini</p>
+                </div>
+              ) : (
+                <ul className="space-y-3">
+                  {aiAlerts.map((a, i) => {
+                    const isCritical = a.severity === "critical";
+                    return (
+                      <li
+                        key={i}
+                        className={`rounded-lg border p-4 transition ${
                           isCritical
-                            ? "bg-foreground text-background"
-                            : a.severity === "warning"
-                            ? "bg-secondary text-foreground border border-border"
-                            : "bg-transparent text-muted-foreground border border-border/60"
-                        }`}>
-                          {isCritical ? <CircleAlert className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-                          {a.severity}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                            <p className="font-medium">{a.title}</p>
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">{a.zone}</p>
+                            ? "border-foreground/40 bg-foreground/[0.04]"
+                            : "border-border/60 bg-secondary/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-semibold ${
+                            isCritical
+                              ? "bg-foreground text-background"
+                              : a.severity === "warning"
+                              ? "bg-secondary text-foreground border border-border"
+                              : "bg-transparent text-muted-foreground border border-border/60"
+                          }`}>
+                            {isCritical ? <CircleAlert className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                            {a.severity}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{a.verdict}</p>
+                          <div className="flex-1">
+                            <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                              <p className="font-medium">{a.title}</p>
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">{a.zone}</p>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{a.verdict}</p>
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
 
             {/* Panel D: 5-Phase Tactical Verdict */}
@@ -532,23 +723,34 @@ const Analysis = () => {
                   <Brain className="w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
-              <ol className="space-y-4">
-                {TACTICAL_VERDICT.map((ins, i) => (
-                  <li key={i} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <span className="w-7 h-7 rounded-full border border-border bg-secondary/40 flex items-center justify-center text-xs font-mono text-muted-foreground">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      {i < TACTICAL_VERDICT.length - 1 && <span className="w-px flex-1 bg-border mt-1" />}
-                    </div>
-                    <div className="flex-1 pb-1">
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{ins.phase}</p>
-                      <p className="font-semibold text-sm mt-0.5">{ins.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed font-light">{ins.body}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              {isGeneratingAI ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
+                  <div className="relative mb-4">
+                    <div className="absolute inset-0 blur-xl bg-foreground/10 rounded-full" />
+                    <Brain className="w-8 h-8 text-foreground animate-pulse relative" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-sm font-medium">Generating LLM Tactical Verdict...</p>
+                  <p className="text-xs text-muted-foreground mt-1">Processing 5-Phase pipeline data</p>
+                </div>
+              ) : (
+                <ol className="space-y-4">
+                  {aiVerdict.map((ins, i) => (
+                    <li key={i} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <span className="w-7 h-7 rounded-full border border-border bg-secondary/40 flex items-center justify-center text-xs font-mono text-muted-foreground">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        {i < aiVerdict.length - 1 && <span className="w-px flex-1 bg-border mt-1" />}
+                      </div>
+                      <div className="flex-1 pb-1">
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{ins.phase}</p>
+                        <p className="font-semibold text-sm mt-0.5">{ins.title}</p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed font-light">{ins.body}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
               <div className="mt-5 pt-4 border-t border-border/60 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
                 <span>U-xT Agent v2.4 · 5-Phase Pipeline</span>
                 <span className="font-mono">{new Date().toISOString().slice(0, 10)}</span>

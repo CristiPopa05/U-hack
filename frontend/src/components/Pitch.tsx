@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { generateXTGrid, generateHeatmap, PASS_NODES, PASS_LINKS, type MadePass } from "@/lib/mock-data";
+import { type GoalSequence } from "@/lib/spatial-service";
 
 type Layer = "xt" | "passes" | "network" | "leaders";
 
@@ -57,6 +58,12 @@ interface PitchProps {
   seed?: number;
   focus?: PitchFocus | null;
   passes?: MadePass[];
+  /** Normalized 12×16 xT matrix from Supabase (values 0..1 where 1 = max zone). Overrides mock data when present. */
+  xtMatrix?: number[][] | null;
+  /** Real leader zones from Supabase (48 entries, 8×6). Overrides mock LEADER_ZONES when present. */
+  leaderZones?: { name: string; xt: number; intensity: number }[] | null;
+  /** Real goal sequence from Supabase to show build-up. Overrides mock PASS_LINKS when present. */
+  goalSequence?: GoalSequence;
 }
 
 const ROWS = 12;
@@ -79,12 +86,18 @@ function generateFocusGrid(focus: PitchFocus): number[][] {
   return g;
 }
 
-export function Pitch({ layer, seed = 1, focus, passes }: PitchProps) {
+export function Pitch({ layer, seed = 1, focus, passes, xtMatrix, leaderZones, goalSequence }: PitchProps) {
   const xtTeam = useMemo(() => generateXTGrid(seed), [seed]);
   const hmTeam = useMemo(() => generateHeatmap(seed + 1), [seed]);
   const focusGrid = useMemo(() => (focus ? generateFocusGrid(focus) : null), [focus]);
+
+  // If we have real data from Supabase, use that; otherwise fallback to mock
+  const hasRealData = !!xtMatrix && xtMatrix.length > 0;
+
   // Normalize: xt original max ~0.28, heatmap 0..1
-  const xt = focusGrid
+  const xt = hasRealData
+    ? xtMatrix!
+    : focusGrid
     ? focusGrid.map((row) => row.map((v) => v * 0.28))
     : xtTeam;
   const hm = focusGrid ?? hmTeam;
@@ -114,10 +127,14 @@ export function Pitch({ layer, seed = 1, focus, passes }: PitchProps) {
           <g opacity={0.95}>
             {Array.from({ length: ROWS }).flatMap((_, r) =>
               Array.from({ length: COLS }).map((_, c) => {
-                const v = xt[r][c] / 0.28;
+                // When using real data, values are already normalized 0..1
+                // When using mock data, normalize by dividing by 0.28
+                const raw = hasRealData ? (xt[r]?.[c] ?? 0) : xt[r][c] / 0.28;
+                // Apply gamma correction for more gradual brightness (v^0.3)
+                const v = hasRealData ? Math.pow(raw, 0.3) : raw;
                 const cw = W / COLS, ch = H / ROWS;
-                const lightness = 6 + v * 78;
-                const alpha = 0.55 + v * 0.45;
+                const lightness = 10 + v * 75;
+                const alpha = 0.5 + v * 0.5;
                 return (
                   <rect
                     key={`${r}-${c}`}
@@ -217,38 +234,91 @@ export function Pitch({ layer, seed = 1, focus, passes }: PitchProps) {
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(0 0% 95%)" />
               </marker>
             </defs>
-            {PASS_LINKS.map((l, i) => {
-              const from = PASS_NODES.find((n) => n.id === l.from);
-              const to = PASS_NODES.find((n) => n.id === l.to);
-              if (!from || !to) return null;
-              const x1 = from.x * W, y1 = from.y * H, x2 = to.x * W, y2 = to.y * H;
-              const lightness = 50 + l.weight * 50;
-              const sw = 1.2 + l.weight * 4.2;
-              return (
-                <line
-                  key={i}
-                  x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke={`hsl(0 0% ${lightness}% / ${0.35 + l.weight * 0.55})`}
-                  strokeWidth={sw}
-                  markerEnd="url(#arrowNet)"
-                  strokeLinecap="round"
-                />
-              );
-            })}
-            {PASS_NODES.map((n) => {
-              const x = n.x * W, y = n.y * H;
-              return (
-                <g key={n.id}>
-                  <circle cx={x} cy={y} r={20} fill="hsl(0 0% 8%)" stroke="hsl(0 0% 95%)" strokeWidth={1.5} />
-                  <text x={x} y={y + 5} textAnchor="middle" fill="hsl(0 0% 95%)" fontSize={14} fontWeight={700} fontFamily="Space Grotesk, Inter">
-                    {n.num}
-                  </text>
-                  <text x={x} y={y + 38} textAnchor="middle" fill="hsl(0 0% 70%)" fontSize={11} fontFamily="Inter">
-                    {n.name}
-                  </text>
-                </g>
-              );
-            })}
+            {goalSequence ? (
+              // REAL GOAL SEQUENCE DATA
+              <>
+                {goalSequence.events.map((ev, i) => {
+                  const x1 = (ev.start_x / 100) * W;
+                  const y1 = (ev.start_y / 100) * H;
+                  const x2 = (ev.end_x / 100) * W;
+                  const y2 = (ev.end_y / 100) * H;
+                  
+                  // Goal shot in yellow, else normal pass
+                  const isGoal = ev.event_type === 'goal';
+                  const strokeColor = isGoal ? "hsl(45 100% 60%)" : "hsl(0 0% 95%)";
+                  const strokeOpacity = isGoal ? 0.9 : 0.6;
+                  const sw = isGoal ? 3 : 2;
+                  
+                  return (
+                    <line
+                      key={`seq-line-${i}`}
+                      x1={x1} y1={y1} x2={x2} y2={y2}
+                      stroke={strokeColor}
+                      strokeOpacity={strokeOpacity}
+                      strokeWidth={sw}
+                      markerEnd="url(#arrowNet)"
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+                {goalSequence.events.map((ev, i) => {
+                  const x = (ev.start_x / 100) * W;
+                  const y = (ev.start_y / 100) * H;
+                  
+                  // Shorten name to last name if possible
+                  const parts = ev.player_name.split(' ');
+                  const displayName = parts.length > 1 ? parts[parts.length - 1] : ev.player_name;
+                  
+                  return (
+                    <g key={`seq-node-${i}`}>
+                      <circle cx={x} cy={y} r={18} fill="hsl(0 0% 8%)" stroke="hsl(0 0% 95%)" strokeWidth={1.5} />
+                      <text x={x} y={y + 5} textAnchor="middle" fill="hsl(0 0% 95%)" fontSize={13} fontWeight={700} fontFamily="Space Grotesk, Inter">
+                        {i + 1}
+                      </text>
+                      <text x={x} y={y + 34} textAnchor="middle" fill="hsl(0 0% 70%)" fontSize={11} fontFamily="Inter">
+                        {displayName}
+                      </text>
+                    </g>
+                  );
+                })}
+              </>
+            ) : (
+              // MOCK DATA FALLBACK
+              <>
+                {PASS_LINKS.map((l, i) => {
+                  const from = PASS_NODES.find((n) => n.id === l.from);
+                  const to = PASS_NODES.find((n) => n.id === l.to);
+                  if (!from || !to) return null;
+                  const x1 = from.x * W, y1 = from.y * H, x2 = to.x * W, y2 = to.y * H;
+                  const lightness = 50 + l.weight * 50;
+                  const sw = 1.2 + l.weight * 4.2;
+                  return (
+                    <line
+                      key={i}
+                      x1={x1} y1={y1} x2={x2} y2={y2}
+                      stroke={`hsl(0 0% ${lightness}% / ${0.35 + l.weight * 0.55})`}
+                      strokeWidth={sw}
+                      markerEnd="url(#arrowNet)"
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+                {PASS_NODES.map((n) => {
+                  const x = n.x * W, y = n.y * H;
+                  return (
+                    <g key={n.id}>
+                      <circle cx={x} cy={y} r={20} fill="hsl(0 0% 8%)" stroke="hsl(0 0% 95%)" strokeWidth={1.5} />
+                      <text x={x} y={y + 5} textAnchor="middle" fill="hsl(0 0% 95%)" fontSize={14} fontWeight={700} fontFamily="Space Grotesk, Inter">
+                        {n.num}
+                      </text>
+                      <text x={x} y={y + 38} textAnchor="middle" fill="hsl(0 0% 70%)" fontSize={11} fontFamily="Inter">
+                        {n.name}
+                      </text>
+                    </g>
+                  );
+                })}
+              </>
+            )}
           </g>
         )}
 
@@ -258,13 +328,13 @@ export function Pitch({ layer, seed = 1, focus, passes }: PitchProps) {
             {Array.from({ length: 6 }).flatMap((_, row) =>
               Array.from({ length: 8 }).map((_, col) => {
                 const idx = row * 8 + col;
-                const z = LEADER_ZONES[idx];
+                const z = (leaderZones && leaderZones.length > 0 ? leaderZones : LEADER_ZONES)[idx];
                 const cw = (W - 40) / 8;
                 const ch = (H - 40) / 6;
                 const x = 20 + col * cw;
                 const y = 20 + row * ch;
-                const lightness = 12 + z.intensity * 70; // 12% .. 82%
-                const lightBg = lightness > 55;
+                const lightness = 22 + Math.pow(z.intensity, 0.4) * 65; // gamma-corrected, base 22%
+                const lightBg = lightness > 50;
                 const textFill = lightBg ? "#000" : "#fff";
                 return (
                   <g key={`lz-${idx}`}>

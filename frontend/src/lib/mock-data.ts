@@ -7,8 +7,9 @@ export type Team = {
 };
 
 export const TEAMS: Team[] = [
-  { id: "craiova", name: "U Craiova", short: "UCV", city: "Craiova", founded: 1948 },
-  { id: "cfr", name: "CFR Cluj", short: "CFR", city: "Cluj-Napoca", founded: 1907 },
+  { id: "u-cluj", name: "FC Universitatea Cluj", short: "U CLJ", city: "Cluj-Napoca", founded: 1919 },
+  { id: "craiova", name: "Universitatea Craiova", short: "UCV", city: "Craiova", founded: 1948 },
+  { id: "cfr", name: "CFR 1907 Cluj", short: "CFR", city: "Cluj-Napoca", founded: 1907 },
   { id: "rapid", name: "Rapid București", short: "RAP", city: "București", founded: 1923 },
   { id: "dinamo", name: "Dinamo București", short: "DIN", city: "București", founded: 1948 },
   { id: "arges", name: "FC Argeș", short: "ARG", city: "Pitești", founded: 1953 },
@@ -195,14 +196,14 @@ export type Alert = {
   verdict: string;
 };
 export const ALERTS: Alert[] = [
-  { severity: "critical", zone: "Half-space, Right", title: "DM line break exposure",
-    verdict: "AI Verdict: The defensive midfielder does not drop deep enough between the center-backs when the right-back advances, opening a 14m vertical channel exploited in 38% of opponent transitions." },
-  { severity: "warning", zone: "Box, Far Post", title: "Set-piece marking drift",
-    verdict: "AI Verdict: Zonal marking line collapses 1.8m toward the near post on inswinging corners, leaving the far post unattended for the third runner." },
-  { severity: "warning", zone: "Left Channel", title: "Full-back 1v1 isolation",
-    verdict: "AI Verdict: The left-back is isolated 1v1 in 62% of phases when the opposing right winger receives between the lines without midfield cover." },
-  { severity: "info", zone: "Build-up, Own Third", title: "Pressing trigger window",
-    verdict: "AI Verdict: A 2.4s window appears after the first pass to the center-back — a coordinated 3-man press recovers possession 41% of the time." },
+  { severity: "critical", zone: "Left Channel", title: "Left-Flank Transition Exposure",
+    verdict: "AI Verdict: The left-back's high starting position leaves a 15m vertical channel exposed during turnovers. LCM fails to provide cover in 65% of transitions against fast-paced attacks." },
+  { severity: "warning", zone: "Central", title: "Predictable Central Progression",
+    verdict: "AI Verdict: Over-reliance on central progression (45% of passes) allows opponents to pack the midfield. Right flank remains heavily underutilized for stretching play." },
+  { severity: "warning", zone: "Box, Edge", title: "Set-piece Defensive Marking",
+    verdict: "AI Verdict: Zonal marking line occasionally drops too deep on outswinging corners, leaving the edge of the box (Zone 14) vulnerable to second balls and long shots." },
+  { severity: "info", zone: "Build-up, Own Third", title: "Pressing Trigger Window",
+    verdict: "AI Verdict: A 2.4s window appears after the first pass to the center-back — a coordinated 3-man press recovers possession 41% of the time. Strong pressing is highly recommended here." },
 ];
 
 export const AI_INSIGHTS: { title: string; body: string }[] = [

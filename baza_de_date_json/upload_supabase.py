@@ -28,17 +28,23 @@ def get_team_uuid(team_id):
 def get_match_player_id(match_id, player_id):
     return int(str(match_id) + str(player_id))
 
-files = ["meciul1.json", "meciul2.json", "meciul3.json"]
+import glob
+import time
 
-for file in files:
+MECIURI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meciuri")
+files = sorted(glob.glob(os.path.join(MECIURI_DIR, "combined_*.json")))
+
+print(f"Found {len(files)} JSON files in meciuri/\n")
+
+for file_idx, file in enumerate(files, 1):
     if not os.path.exists(file):
         print(f"File {file} not found")
         continue
 
-    print(f"Processing {file}...")
+    print(f"[{file_idx}/{len(files)}] Processing {os.path.basename(file)}...")
     
     data = None
-    for enc in ['utf-8', 'utf-16', 'utf-16le', 'latin1']:
+    for enc in ['utf-8-sig', 'utf-8', 'utf-16', 'utf-16le', 'latin1']:
         try:
             with open(file, 'r', encoding=enc) as f:
                 data = json.load(f)
@@ -182,18 +188,34 @@ for file in files:
             print(f"Events inserted. ({len(events_payload)})")
     
     print("-" * 20)
-# După ultimul print("-" * 20), adaugă asta:
-print("Toate fișierele au fost procesate. Aștept confirmarea xT...")
 
-GC_FUNCTION_URL = "https://calculate-xt-483351897557.europe-west1.run.app"
+    # ===== PASUL 5: Calculăm xT per pasă (GET) =====
+    print(f"[{file}] Calculăm xT pentru pase (GET)...")
+    GC_FUNCTION_URL = "https://calculate-xt-483351897557.europe-west1.run.app"
 
-try:
-    req = urllib.request.Request(GC_FUNCTION_URL)
-    response = urllib.request.urlopen(req)
-    
-    if response.getcode() == 200:
-        print("Succes! xT-ul a fost calculat.")
-    else:
-        print(f"Eroare: {response.getcode()}")
-except Exception as e:
-    print(f"Eroare la conexiune: {str(e)}")
+    try:
+        req = urllib.request.Request(GC_FUNCTION_URL)
+        response = urllib.request.urlopen(req, timeout=120)
+        result = json.loads(response.read().decode('utf-8'))
+        print(f"[{file}] GET xT result: {result.get('message', 'OK')}")
+    except Exception as e:
+        print(f"[{file}] Eroare GET xT: {str(e)}")
+
+    # ===== PASUL 6: Generăm analiza spațială (POST cu match_id) =====
+    print(f"[{file}] Generăm matricea spațială pentru match_id={match_id} (POST)...")
+
+    try:
+        post_data = json.dumps({"match_id": match_id}).encode('utf-8')
+        post_headers = {
+            "Content-Type": "application/json"
+        }
+        req = urllib.request.Request(GC_FUNCTION_URL, post_data, post_headers)
+        response = urllib.request.urlopen(req, timeout=120)
+        result = json.loads(response.read().decode('utf-8'))
+        print(f"[{file}] POST spatial result: {result.get('message', 'OK')}")
+    except Exception as e:
+        print(f"[{file}] Eroare POST spatial: {str(e)}")
+
+    print(f"===== {file} COMPLET =====\n")
+
+print("Toate fișierele au fost procesate cu succes!")
