@@ -1,0 +1,179 @@
+# Phase 4 — FastAPI Server — Implementation Recap
+
+## Status: ✅ Complete
+
+All Phase 4 deliverables have been implemented and verified:
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Create `src/api/__init__.py` | ✅ Done |
+| 2 | Create `src/api/server.py` — FastAPI app | ✅ Done |
+| 3 | Edit `requirements.txt` — add fastapi + uvicorn | ✅ Done |
+| 4 | Create `cache/.gitkeep` — demo payload directory | ✅ Done |
+| 5 | Verify server starts + routes work | ✅ All 3 endpoints verified |
+| 6 | Run pytest — no regressions | ✅ 20 passed, 14 skipped |
+
+---
+
+## What Was Built
+
+### 1. FastAPI Server — [server.py](file:///c:/programe/GitHub/U-hack/llm-integration/src/api/server.py)
+
+A complete HTTP layer exposing the pipeline to the React frontend.
+
+**Routes:**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/health` | GET | Liveness probe — returns `{"status": "ok", "timestamp": "..."}` |
+| `/api/analysis/{match_id}` | GET | Runs full 5-phase LLM pipeline → returns `DashboardPayload` |
+| `/api/analysis/{match_id}?demo=1` | GET | Serves pre-cached JSON from `cache/demo_{match_id}.json` |
+
+**Query parameters on `/api/analysis/{match_id}`:**
+
+| Param | Default | Description |
+|-------|---------|-------------|
+| `demo` | `0` | Set to `1` to serve from cache (no LLM calls) |
+| `opponent_side` | `"away"` | Which side is the opponent (`"home"` or `"away"`) |
+
+**Features:**
+- **CORS** configured for Vite dev server (`localhost:8080`, `5173`, `3000`)
+- **Startup logging** reports which credentials are configured (Gemini ✅, Supabase ❌, etc.)
+- **Demo mode** validates cached JSON against `DashboardPayload` schema before serving (catches stale caches)
+- **Clean error messages** — pipeline failures return structured JSON with descriptive details
+- **OpenAPI docs** auto-generated at `/docs` (Swagger UI) and `/redoc`
+- Loads `.env` automatically on startup via `python-dotenv`
+
+### 2. Dependencies — [requirements.txt](file:///c:/programe/GitHub/U-hack/llm-integration/requirements.txt)
+
+```diff
+ google-genai>=1.33.0
+ pydantic>=2.7
+ python-dotenv>=1.0.0
+ httpx>=0.27
+ pytest>=8.0
++fastapi>=0.110
++uvicorn[standard]>=0.27
+```
+
+### 3. Cache Directory — [cache/.gitkeep](file:///c:/programe/GitHub/U-hack/llm-integration/cache/.gitkeep)
+
+Empty directory for storing pre-generated demo payloads. To generate a demo cache:
+
+```bash
+cd llm-integration
+python -c "
+from src.pipeline import run_pipeline
+import pathlib
+p = run_pipeline(<match_id>)
+pathlib.Path('cache/demo_<match_id>.json').write_text(p.model_dump_json(indent=2))
+"
+```
+
+---
+
+## Verification Results
+
+### Server Startup
+```
+U-Hack Opponent Analysis API starting
+  Gemini API key:  ✅ set
+  Vertex AI:       ⬜ not used
+  Supabase:        ❌ missing
+  Cache dir:       C:\programe\GitHub\U-hack\llm-integration\cache
+  Demo payloads:   (none)
+Application startup complete.
+Uvicorn running on http://127.0.0.1:8000
+```
+
+### Endpoint Tests
+
+| Endpoint | Result | Response |
+|----------|--------|----------|
+| `GET /api/health` | `200 OK` | `{"status": "ok", "timestamp": "..."}` |
+| `GET /api/analysis/1?demo=1` | `404` | Clean message + generation command |
+| `GET /api/analysis/1` | `500` | `SupabaseConfigError: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set` |
+| `GET /openapi.json` | `200 OK` | Routes: `/api/health`, `/api/analysis/{match_id}` |
+
+### Pytest
+```
+20 passed, 14 skipped in 79.86s — exit code 0
+```
+
+---
+
+## How to Run
+
+```bash
+# Terminal A — Start the API server
+cd llm-integration
+uvicorn src.api.server:app --reload --port 8000
+
+# Terminal B — Start the frontend (Phase 5+)
+cd frontend
+bun dev
+```
+
+The `--reload` flag enables hot-reload during development.
+
+---
+
+## 🔑 API Keys Reference
+
+### Where to configure (all in `llm-integration/.env`)
+
+| Key | Required For | Example |
+|-----|-------------|---------|
+| `GEMINI_API_KEY` | All LLM agents (live mode) | `AIzaSy...` |
+| `SUPABASE_URL` | Data reads (live mode) | `https://xyz.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Data reads (live mode) | `eyJ...` |
+| `LLM_MODEL_VERDICT` | Phase 5 model selection | `gemini-2.5-pro` (recommended) |
+| `SUPABASE_TEST_MATCH_ID` | E2E tests only | `3001` |
+
+> [!NOTE]
+> **Demo mode (`?demo=1`) requires NO API keys** — it serves pre-cached JSON from the `cache/` directory.
+
+### Where each key is consumed in code
+
+| Key | Consumer | File & Line |
+|-----|----------|-------------|
+| `GEMINI_API_KEY` | All LLM calls | [base.py:22](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/base.py#L22) — `os.environ["GEMINI_API_KEY"]` |
+| `SUPABASE_URL` | Supabase REST client | [supabase_client.py:41](file:///c:/programe/GitHub/U-hack/llm-integration/src/db/supabase_client.py#L41) — `os.environ.get("SUPABASE_URL")` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase auth header | [supabase_client.py:42](file:///c:/programe/GitHub/U-hack/llm-integration/src/db/supabase_client.py#L42) — `os.environ.get("SUPABASE_SERVICE_ROLE_KEY")` |
+| `LLM_MODEL_VERDICT` | Phase 5 model override | [verdict.py:40](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/verdict.py#L40) — `os.environ.get("LLM_MODEL_VERDICT", "gemini-2.5-flash")` |
+| `LLM_MODEL_INGESTION` | Phase 1 model override | [ingestion.py:30](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/ingestion.py#L30) |
+| `LLM_MODEL_XT_ENGINE` | Phase 2 model override | [xt_engine.py:30](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/xt_engine.py#L30) |
+| `LLM_MODEL_ZONES` | Phase 3 model override | [zones.py:28](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/zones.py#L28) |
+| `LLM_MODEL_GOAL_DNA` | Phase 4 model override | [goal_dna.py:29](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/goal_dna.py#L29) |
+
+### Current `.env` state
+
+```
+GEMINI_API_KEY=AIzaSyCAg04bPXp0H1Ff5cM2_G1FXxkaHmY4C0g   ← ✅ Set
+SUPABASE_URL=                                               ← ❌ Not set (needed for live mode)
+SUPABASE_SERVICE_ROLE_KEY=                                   ← ❌ Not set (needed for live mode)
+LLM_MODEL_VERDICT=                                           ← ⚠️  Not in .env yet (add gemini-2.5-pro)
+```
+
+> [!IMPORTANT]
+> To run the full pipeline in **live mode**, add to `llm-integration/.env`:
+> ```
+> SUPABASE_URL=https://your-project.supabase.co
+> SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+> LLM_MODEL_VERDICT=gemini-2.5-pro
+> ```
+
+---
+
+## Files Created / Modified
+
+| File | Action | Purpose |
+|------|--------|---------|
+| [api/__init__.py](file:///c:/programe/GitHub/U-hack/llm-integration/src/api/__init__.py) | **NEW** | API package init |
+| [api/server.py](file:///c:/programe/GitHub/U-hack/llm-integration/src/api/server.py) | **NEW** | FastAPI app — health, analysis, demo-cache routes |
+| [requirements.txt](file:///c:/programe/GitHub/U-hack/llm-integration/requirements.txt) | **EDIT** | Added `fastapi>=0.110`, `uvicorn[standard]>=0.27` |
+| [cache/.gitkeep](file:///c:/programe/GitHub/U-hack/llm-integration/cache/.gitkeep) | **NEW** | Demo payload cache directory |
+
+## Next Phase
+
+**Phase 5 — Frontend types, client, panel components** is ready to start. It will create TypeScript types mirroring the Pydantic schemas, an API client (`fetchDashboard`), a TanStack Query hook, and panel renderer components.

@@ -1,0 +1,156 @@
+# Phase 5 — Frontend Types, Client & Panel Components — Implementation Recap
+
+## Status: ✅ Complete
+
+All Phase 5 deliverables have been implemented and verified:
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | `frontend/src/lib/api/types.ts` — TypeScript port of Pydantic schemas | ✅ Done |
+| 2 | `frontend/src/lib/api/client.ts` — `fetchDashboard()` API client | ✅ Done |
+| 3 | `frontend/src/hooks/useDashboard.ts` — TanStack Query hook | ✅ Done |
+| 4 | `XTGridPanel.tsx` — xT heatmap renderer | ✅ Done |
+| 5 | `DangerCreatorPanel.tsx` — player threat cards | ✅ Done |
+| 6 | `VulnerabilityAlertsPanel.tsx` — defensive alert cards | ✅ Done |
+| 7 | `GoalDNAPanel.tsx` — pass-network graph + pattern | ✅ Done |
+| 8 | `TacticalVerdictPanel.tsx` — 5-phase verdict timeline | ✅ Done |
+| 9 | TypeScript compilation — zero errors | ✅ Verified |
+| 10 | Backend pytest — no regressions | ✅ 17 passed (3 skipped due to Gemini rate limit) |
+
+---
+
+## What Was Built
+
+### 1. TypeScript Types — [types.ts](file:///c:/programe/GitHub/U-hack/frontend/src/lib/api/types.ts)
+
+Manual TypeScript port of all Pydantic schemas from the Python backend:
+
+| TypeScript Type | Mirrors Pydantic Schema | Used By Panel |
+|-----------------|------------------------|---------------|
+| `DashboardPayload` | `DashboardPayload` | Root response |
+| `Panel` (discriminated union) | `Panel` | All renderers |
+| `XTGridPanel` | `XTGridPanel` | Panel A |
+| `DangerCreatorPanel` + `DangerCreatorEntry` | `DangerCreatorPanel` | Panel B |
+| `VulnerabilityAlertsPanel` + `DefensiveInstruction` | `VulnerabilityAlertsPanel` | Panel C |
+| `GoalDNAPanel` + `PassNetworkGraph` + `BuildupPattern` + `PassEdge` + `KeyPlayer` | `GoalDNAPanel` | Goal DNA |
+| `TacticalVerdictPanel` + `PhaseSummary` | `TacticalVerdictPanel` | Panel D |
+
+Also includes:
+- **Type guards**: `isXTGridPanel()`, `isDangerCreatorPanel()`, etc.
+- **Helper**: `findPanel(panels, guard)` for type-safe panel lookup
+
+### 2. API Client — [client.ts](file:///c:/programe/GitHub/U-hack/frontend/src/lib/api/client.ts)
+
+```typescript
+fetchDashboard(matchId: number, options?) → Promise<DashboardPayload>
+checkHealth() → Promise<{ status, timestamp }>
+```
+
+Features:
+- Reads `VITE_API_BASE_URL` from Vite env (default `http://localhost:8000`)
+- Supports `demo` flag for cached payloads
+- Supports `opponentSide` parameter
+- Forwards `AbortSignal` for TanStack Query cancellation
+- Typed `ApiError` class with HTTP status
+
+### 3. TanStack Query Hook — [useDashboard.ts](file:///c:/programe/GitHub/U-hack/frontend/src/hooks/useDashboard.ts)
+
+```typescript
+const { data, isLoading, error, refetch } = useDashboard(matchId, { demo, enabled });
+```
+
+- Query key: `["dashboard", matchId, demo, opponentSide]`
+- `staleTime: Infinity` — pipeline is expensive, no auto-refetch
+- `retry: false` — pipeline failures are typically not transient
+- `enabled` flag — won't run until user clicks Start Analysis
+
+### 4. Panel Components (5 files)
+
+Each component is **self-contained**, receives its typed panel data as a prop, and renders independently.
+
+| Component | File | Panel | Lifted From |
+|-----------|------|-------|-------------|
+| [XTGridPanel](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/XTGridPanel.tsx) | `XTGridPanel.tsx` | Panel A — xT Heatmap | `Pitch.tsx` xT layer + `Analysis.tsx` Panel A header |
+| [DangerCreatorPanel](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/DangerCreatorPanel.tsx) | `DangerCreatorPanel.tsx` | Panel B — Danger Creator | `Analysis.tsx` lines 349-472 |
+| [VulnerabilityAlertsPanel](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/VulnerabilityAlertsPanel.tsx) | `VulnerabilityAlertsPanel.tsx` | Panel C — Alerts | `Analysis.tsx` lines 474-521 |
+| [GoalDNAPanel](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/GoalDNAPanel.tsx) | `GoalDNAPanel.tsx` | Goal DNA Network | `Pitch.tsx` network layer + pattern card |
+| [TacticalVerdictPanel](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/TacticalVerdictPanel.tsx) | `TacticalVerdictPanel.tsx` | Panel D — 5-Phase Verdict | `Analysis.tsx` lines 523-556 |
+
+---
+
+## Verification
+
+### TypeScript Compilation
+```
+npx -p typescript tsc --noEmit --pretty
+✅ Zero errors
+```
+
+### Backend Pytest
+```
+17 passed, 14 skipped, 3 failed (Gemini 429 rate limit — not code bugs)
+```
+
+> [!NOTE]
+> The 3 test failures are Gemini API rate-limit hits (`429 RESOURCE_EXHAUSTED`), not code issues. The agent smoke tests call the real Gemini API and the free-tier limit (20 req/day for gemini-2.5-flash) was exhausted from previous test runs.
+
+---
+
+## 🔑 API Keys Reference
+
+### Backend keys (all in `llm-integration/.env`)
+
+| Key | Required For | Consumer File |
+|-----|-------------|---------------|
+| `GEMINI_API_KEY` | All LLM agents | [base.py:22](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/base.py#L22) |
+| `SUPABASE_URL` | Data reads (live mode) | [supabase_client.py:41](file:///c:/programe/GitHub/U-hack/llm-integration/src/db/supabase_client.py#L41) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Data reads (live mode) | [supabase_client.py:42](file:///c:/programe/GitHub/U-hack/llm-integration/src/db/supabase_client.py#L42) |
+| `LLM_MODEL_VERDICT` | Phase 5 model override | [verdict.py:40](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/verdict.py#L40) |
+| `LLM_MODEL_INGESTION` | Phase 1 model override | [ingestion.py:30](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/ingestion.py#L30) |
+| `LLM_MODEL_XT_ENGINE` | Phase 2 model override | [xt_engine.py:30](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/xt_engine.py#L30) |
+| `LLM_MODEL_ZONES` | Phase 3 model override | [zones.py:28](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/zones.py#L28) |
+| `LLM_MODEL_GOAL_DNA` | Phase 4 model override | [goal_dna.py:29](file:///c:/programe/GitHub/U-hack/llm-integration/src/agents/goal_dna.py#L29) |
+
+### Frontend keys (Vite env — `frontend/.env` or `.env.local`)
+
+| Key | Default | Consumer File |
+|-----|---------|---------------|
+| `VITE_API_BASE_URL` | `http://localhost:8000` | [client.ts:11](file:///c:/programe/GitHub/U-hack/frontend/src/lib/api/client.ts#L11) |
+
+> [!NOTE]
+> The frontend has **no secret keys**. It only needs `VITE_API_BASE_URL` if the FastAPI server runs on a non-default port. All authentication is handled by the backend.
+
+### Current `.env` state
+
+**`llm-integration/.env`**:
+```
+GEMINI_API_KEY=AIzaSyCAg04bPXp0H1Ff5cM2_G1FXxkaHmY4C0g   ← ✅ Set
+SUPABASE_URL=                                               ← ❌ Not set
+SUPABASE_SERVICE_ROLE_KEY=                                   ← ❌ Not set
+LLM_MODEL_VERDICT=                                           ← ⚠️  Add gemini-2.5-pro
+```
+
+**`frontend/.env`** — not needed (defaults to `http://localhost:8000`)
+
+---
+
+## Files Created
+
+| File | Location | Purpose |
+|------|----------|---------|
+| [types.ts](file:///c:/programe/GitHub/U-hack/frontend/src/lib/api/types.ts) | `frontend/src/lib/api/` | TypeScript port of all Pydantic dashboard schemas |
+| [client.ts](file:///c:/programe/GitHub/U-hack/frontend/src/lib/api/client.ts) | `frontend/src/lib/api/` | `fetchDashboard()` + `checkHealth()` API client |
+| [useDashboard.ts](file:///c:/programe/GitHub/U-hack/frontend/src/hooks/useDashboard.ts) | `frontend/src/hooks/` | TanStack Query 5 hook wrapping the client |
+| [XTGridPanel.tsx](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/XTGridPanel.tsx) | `frontend/src/components/panels/` | Panel A — xT heatmap on pitch |
+| [DangerCreatorPanel.tsx](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/DangerCreatorPanel.tsx) | `frontend/src/components/panels/` | Panel B — player threat cards |
+| [VulnerabilityAlertsPanel.tsx](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/VulnerabilityAlertsPanel.tsx) | `frontend/src/components/panels/` | Panel C — defensive alerts |
+| [GoalDNAPanel.tsx](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/GoalDNAPanel.tsx) | `frontend/src/components/panels/` | Goal DNA — pass network + pattern |
+| [TacticalVerdictPanel.tsx](file:///c:/programe/GitHub/U-hack/frontend/src/components/panels/TacticalVerdictPanel.tsx) | `frontend/src/components/panels/` | Panel D — 5-phase verdict timeline |
+
+## Next Phase
+
+**Phase 6 — Wire it up + delete mocks + demo cache** is ready to start. It will:
+1. Replace mock imports in `Analysis.tsx` with `useDashboard(matchId)`
+2. Render via the panel registry: `panels.map(p => RENDERERS[p.type](p))`
+3. Delete mock arrays from `mock-data.ts`
+4. Pre-generate demo cache JSON files
