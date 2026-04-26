@@ -630,18 +630,23 @@ const Analysis = () => {
                                 : "border-transparent hover:bg-zinc-800/60 hover:border-border/50"
                             }`}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-3 min-w-[120px]">
                               <span className={`font-mono text-[11px] w-5 text-right ${isSelected ? "text-background/70" : "text-muted-foreground"}`}>
                                 {String(i + 1).padStart(2, "0")}
                               </span>
-                              <span className="text-sm font-medium truncate">{p.name}</span>
-                              <span className={`text-[10px] uppercase tracking-wider shrink-0 ${isSelected ? "text-background/70" : "text-muted-foreground"}`}>
-                                {p.pos}
+                              <span className="text-sm font-medium truncate w-24 md:w-32">{p.name}</span>
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0 justify-end w-full">
+                              <span className={`text-[11px] font-mono ${isSelected ? "text-background/80" : "text-muted-foreground"} hidden sm:flex items-center gap-1`} title="Passes">
+                                <span className="opacity-60 text-[9px] uppercase">Pas:</span> {p.passes}
+                              </span>
+                              <span className={`text-[11px] font-mono ${isSelected ? "text-background/80" : "text-muted-foreground"} hidden sm:flex items-center gap-1`} title="Assists">
+                                <span className="opacity-60 text-[9px] uppercase">Ast:</span> {p.assists}
+                              </span>
+                              <span className={`font-display text-sm ml-2 w-10 text-right ${isSelected ? "text-background" : "text-foreground"}`}>
+                                {p.xt.toFixed(2)}
                               </span>
                             </div>
-                            <span className={`font-display text-sm shrink-0 ${isSelected ? "text-background" : "text-foreground"}`}>
-                              {p.xt.toFixed(2)}
-                            </span>
                           </button>
                         </li>
                       );
